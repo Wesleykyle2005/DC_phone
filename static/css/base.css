@@ -1,0 +1,59 @@
+:root {
+    --primary-blue: #0d6efd;
+    --secondary-orange: #fd7e14;
+    --light-bg: #f8f9fa;
+}
+
+body {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.navbar {
+    background-color: var(--primary-blue);
+}
+
+.navbar-brand {
+    color: white !important;
+    font-weight: bold;
+}
+
+.nav-link {
+    color: rgba(255, 255, 255, 0.9) !important;
+}
+
+.nav-link:hover {
+    color: var(--secondary-orange) !important;
+}
+
+.footer {
+    background-color: var(--primary-blue);
+    color: white;
+    margin-top: auto;
+    padding: 1rem 0;
+}
+
+.btn-primary {
+    background-color: var(--primary-blue);
+    border-color: var(--primary-blue);
+}
+
+.btn-secondary {
+    background-color: var(--secondary-orange);
+    border-color: var(--secondary-orange);
+}
+
+.main-content {
+    padding: 2rem 0;
+    background-color: var(--light-bg);
+    flex: 1;
+}
+
+.card {
+    transition: transform 0.2s;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+} 

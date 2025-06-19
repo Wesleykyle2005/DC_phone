@@ -1,0 +1,264 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Otros - DC_phone{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2>Gestión de Otros</h2>
+        </div>
+        <div class="col-md-4 text-end">
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#nuevoOtroModal">
+                <i class="fas fa-plus me-2"></i>Nuevo
+            </button>
+        </div>
+    </div>
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <form method="get" class="d-flex">
+                <input type="text" name="search" class="form-control me-2" placeholder="Buscar..." value="{{ search }}">
+                <input type="hidden" name="tipo" value="{{ tipo }}">
+                <button type="submit" class="btn btn-outline-primary">
+                    <i class="fas fa-search"></i>
+                </button>
+            </form>
+        </div>
+        <div class="col-md-6 text-end">
+            <a href="?tipo=municipio" class="btn btn-outline-info {% if tipo == 'municipio' %}active{% endif %}">Municipios</a>
+            <a href="?tipo=rol" class="btn btn-outline-info {% if tipo == 'rol' %}active{% endif %}">Roles</a>
+            <a href="?tipo=marca" class="btn btn-outline-info {% if tipo == 'marca' %}active{% endif %}">Marcas</a>
+            <a href="?tipo=categoria" class="btn btn-outline-info {% if tipo == 'categoria' %}active{% endif %}">Categorías</a>
+        </div>
+    </div>
+    <div class="table-responsive mb-4">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    {% if tipo == 'municipio' %}
+                        <th>Código</th>
+                        <th>Nombre</th>
+                        <th>Acciones</th>
+                    {% elif tipo == 'rol' %}
+                        <th>ID</th>
+                        <th>Nombre</th>
+                        <th>Acciones</th>
+                    {% else %}
+                        <th>ID</th>
+                        <th>Nombre</th>
+                        <th>Acciones</th>
+                    {% endif %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for obj in page_obj %}
+                    <tr>
+                        {% if tipo == 'municipio' %}
+                            <td>{{ obj.codigo_municipio }}</td>
+                            <td>{{ obj.nombre_municipio }}</td>
+                            <td>
+                                <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#eliminarModal{{ obj.codigo_municipio }}">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                                <!-- Modal de confirmación -->
+                                <div class="modal fade" id="eliminarModal{{ obj.codigo_municipio }}" tabindex="-1" aria-labelledby="eliminarModalLabel{{ obj.codigo_municipio }}" aria-hidden="true">
+                                    <div class="modal-dialog">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title" id="eliminarModalLabel{{ obj.codigo_municipio }}">Confirmar Eliminación</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                ¿Seguro que deseas eliminar este municipio?
+                                            </div>
+                                            <div class="modal-footer">
+                                                <form method="post" style="display:inline;">
+                                                    {% csrf_token %}
+                                                    <input type="hidden" name="tipo" value="municipio">
+                                                    <input type="hidden" name="eliminar_id" value="{{ obj.codigo_municipio }}">
+                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                                    <button type="submit" class="btn btn-danger">Eliminar</button>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                        {% elif tipo == 'rol' %}
+                            <td>{{ obj.id_rol }}</td>
+                            <td>{{ obj.nombre_rol }}</td>
+                            <td>
+                                <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#eliminarModalRol{{ obj.id_rol }}">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                                <div class="modal fade" id="eliminarModalRol{{ obj.id_rol }}" tabindex="-1" aria-labelledby="eliminarModalLabelRol{{ obj.id_rol }}" aria-hidden="true">
+                                    <div class="modal-dialog">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title" id="eliminarModalLabelRol{{ obj.id_rol }}">Confirmar Eliminación</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                ¿Seguro que deseas eliminar este rol?
+                                            </div>
+                                            <div class="modal-footer">
+                                                <form method="post" style="display:inline;">
+                                                    {% csrf_token %}
+                                                    <input type="hidden" name="tipo" value="rol">
+                                                    <input type="hidden" name="eliminar_id" value="{{ obj.id_rol }}">
+                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                                    <button type="submit" class="btn btn-danger">Eliminar</button>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                        {% elif tipo == 'marca' %}
+                            <td>{{ obj.id }}</td>
+                            <td>{{ obj.nombre }}</td>
+                            <td>
+                                <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#eliminarModalMarca{{ obj.id }}">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                                <div class="modal fade" id="eliminarModalMarca{{ obj.id }}" tabindex="-1" aria-labelledby="eliminarModalLabelMarca{{ obj.id }}" aria-hidden="true">
+                                    <div class="modal-dialog">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title" id="eliminarModalLabelMarca{{ obj.id }}">Confirmar Eliminación</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                ¿Seguro que deseas eliminar esta marca?
+                                            </div>
+                                            <div class="modal-footer">
+                                                <form method="post" style="display:inline;">
+                                                    {% csrf_token %}
+                                                    <input type="hidden" name="tipo" value="marca">
+                                                    <input type="hidden" name="eliminar_id" value="{{ obj.id }}">
+                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                                    <button type="submit" class="btn btn-danger">Eliminar</button>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                        {% elif tipo == 'categoria' %}
+                            <td>{{ obj.id }}</td>
+                            <td>{{ obj.nombre }}</td>
+                            <td>
+                                <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#eliminarModalCategoria{{ obj.id }}">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                                <div class="modal fade" id="eliminarModalCategoria{{ obj.id }}" tabindex="-1" aria-labelledby="eliminarModalLabelCategoria{{ obj.id }}" aria-hidden="true">
+                                    <div class="modal-dialog">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title" id="eliminarModalLabelCategoria{{ obj.id }}">Confirmar Eliminación</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                ¿Seguro que deseas eliminar esta categoría?
+                                            </div>
+                                            <div class="modal-footer">
+                                                <form method="post" style="display:inline;">
+                                                    {% csrf_token %}
+                                                    <input type="hidden" name="tipo" value="categoria">
+                                                    <input type="hidden" name="eliminar_id" value="{{ obj.id }}">
+                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                                    <button type="submit" class="btn btn-danger">Eliminar</button>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                        {% endif %}
+                    </tr>
+                {% empty %}
+                    <tr><td colspan="3" class="text-center">No hay registros disponibles.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% if page_obj.has_other_pages %}
+    <nav aria-label="Page navigation" class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page=1{% if search %}&search={{ search }}{% endif %}{% if tipo %}&tipo={{ tipo }}{% endif %}" aria-label="First">
+                    <span aria-hidden="true">&laquo;&laquo;</span>
+                </a>
+            </li>
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if search %}&search={{ search }}{% endif %}{% if tipo %}&tipo={{ tipo }}{% endif %}" aria-label="Previous">
+                    <span aria-hidden="true">&laquo;</span>
+                </a>
+            </li>
+            {% endif %}
+            {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                <li class="page-item active"><a class="page-link" href="#">{{ num }}</a></li>
+                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ num }}{% if search %}&search={{ search }}{% endif %}{% if tipo %}&tipo={{ tipo }}{% endif %}">{{ num }}</a>
+                </li>
+                {% endif %}
+            {% endfor %}
+            {% if page_obj.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if search %}&search={{ search }}{% endif %}{% if tipo %}&tipo={{ tipo }}{% endif %}" aria-label="Next">
+                    <span aria-hidden="true">&raquo;</span>
+                </a>
+            </li>
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if search %}&search={{ search }}{% endif %}{% if tipo %}&tipo={{ tipo }}{% endif %}" aria-label="Last">
+                    <span aria-hidden="true">&raquo;&raquo;</span>
+                </a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+    <!-- Modal para nuevo registro -->
+    <div class="modal fade" id="nuevoOtroModal" tabindex="-1" aria-labelledby="nuevoOtroModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="nuevoOtroModalLabel">Nuevo
+                        {% if tipo == 'municipio' %}Municipio{% elif tipo == 'rol' %}Rol{% elif tipo == 'marca' %}Marca{% elif tipo == 'categoria' %}Categoría{% endif %}
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form method="post" action="">
+                    {% csrf_token %}
+                    <input type="hidden" name="tipo" value="{{ tipo }}">
+                    <div class="modal-body">
+                        {% if tipo == 'municipio' %}
+                        <div class="mb-3">
+                            <label for="codigo" class="form-label">Código</label>
+                            <input type="text" class="form-control" id="codigo" name="codigo" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="nombre" class="form-label">Nombre</label>
+                            <input type="text" class="form-control" id="nombre" name="nombre" required>
+                        </div>
+                        {% else %}
+                        <div class="mb-3">
+                            <label for="nombre" class="form-label">Nombre</label>
+                            <input type="text" class="form-control" id="nombre" name="nombre" required>
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Guardar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

@@ -1,0 +1,214 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Personas - DC_phone{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2>Personas</h2>
+        </div>
+        <div class="col-md-4 text-end">
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#nuevaPersonaModal">
+                <i class="fas fa-plus me-2"></i>Nueva Persona
+            </button>
+        </div>
+    </div>
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <form method="get" class="d-flex">
+                <input type="text" name="search" class="form-control me-2" placeholder="Buscar por nombre..." value="{{ search }}">
+                <input type="hidden" name="tipo" value="{{ tipo_filtro }}">
+                <button type="submit" class="btn btn-outline-primary">
+                    <i class="fas fa-search"></i>
+                </button>
+            </form>
+        </div>
+        <div class="col-md-6 text-end">
+            <a href="?tipo=cliente" class="btn btn-outline-info {% if tipo_filtro == 'cliente' %}active{% endif %}">Clientes</a>
+            <a href="?tipo=empleado" class="btn btn-outline-info {% if tipo_filtro == 'empleado' %}active{% endif %}">Empleados</a>
+        </div>
+    </div>
+    <!-- Tabla de personas -->
+    <div class="table-responsive mb-4">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>DNI</th>
+                    <th>Nombre completo</th>
+                    <th>Teléfono</th>
+                    <th>Municipio</th>
+                    <th>Tipo</th>
+                    {% if tipo_filtro == 'empleado' %}
+                    <th>Sucursal</th>
+                    <th>Dirección</th>
+                    {% endif %}
+                </tr>
+            </thead>
+            <tbody>
+                {% if tipo_filtro == 'empleado' %}
+                    {% for empleado in empleados_page %}
+                    <tr>
+                        <td>{{ empleado.persona.dni }}</td>
+                        <td>{{ empleado.persona.nombre_completo }}</td>
+                        <td>{{ empleado.persona.telefono }}</td>
+                        <td>{{ empleado.persona.codigo_municipio.nombre_municipio }}</td>
+                        <td>Empleado</td>
+                        <td>{{ empleado.id_sucursal.nombre }}</td>
+                        <td>{{ empleado.direccion }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="7" class="text-center">No hay empleados disponibles.</td></tr>
+                    {% endfor %}
+                {% else %}
+                    {% for cliente in clientes_page %}
+                    <tr>
+                        <td>{{ cliente.persona.dni }}</td>
+                        <td>{{ cliente.persona.nombre_completo }}</td>
+                        <td>{{ cliente.persona.telefono }}</td>
+                        <td>{{ cliente.persona.codigo_municipio.nombre_municipio }}</td>
+                        <td>Cliente</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="5" class="text-center">No hay clientes disponibles.</td></tr>
+                    {% endfor %}
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+    <!-- Paginación -->
+    {% if clientes_page or empleados_page %}
+        {% with page_obj=clientes_page|default:empleados_page %}
+            {% if page_obj.has_other_pages %}
+            <nav aria-label="Page navigation" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page=1{% if search %}&search={{ search }}{% endif %}{% if tipo_filtro %}&tipo={{ tipo_filtro }}{% endif %}" aria-label="First">
+                            <span aria-hidden="true">&laquo;&laquo;</span>
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if search %}&search={{ search }}{% endif %}{% if tipo_filtro %}&tipo={{ tipo_filtro }}{% endif %}" aria-label="Previous">
+                            <span aria-hidden="true">&laquo;</span>
+                        </a>
+                    </li>
+                    {% endif %}
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == num %}
+                        <li class="page-item active"><a class="page-link" href="#">{{ num }}</a></li>
+                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ num }}{% if search %}&search={{ search }}{% endif %}{% if tipo_filtro %}&tipo={{ tipo_filtro }}{% endif %}">{{ num }}</a>
+                        </li>
+                        {% endif %}
+                    {% endfor %}
+                    {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if search %}&search={{ search }}{% endif %}{% if tipo_filtro %}&tipo={{ tipo_filtro }}{% endif %}" aria-label="Next">
+                            <span aria-hidden="true">&raquo;</span>
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if search %}&search={{ search }}{% endif %}{% if tipo_filtro %}&tipo={{ tipo_filtro }}{% endif %}" aria-label="Last">
+                            <span aria-hidden="true">&raquo;&raquo;</span>
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+        {% endwith %}
+    {% endif %}
+    <!-- Modal para nueva persona -->
+    <div class="modal fade" id="nuevaPersonaModal" tabindex="-1" aria-labelledby="nuevaPersonaModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="nuevaPersonaModalLabel">Nueva Persona</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form method="post" action="">
+                    {% csrf_token %}
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="dni" class="form-label">DNI</label>
+                            <input type="text" class="form-control" id="dni" name="dni" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="nombre_completo" class="form-label">Nombre completo</label>
+                            <input type="text" class="form-control" id="nombre_completo" name="nombre_completo" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="telefono" class="form-label">Teléfono</label>
+                            <input type="text" class="form-control" id="telefono" name="telefono">
+                        </div>
+                        <div class="mb-3">
+                            <label for="municipio" class="form-label">Municipio</label>
+                            <select class="form-select" id="municipio" name="municipio" required>
+                                <option value="">Seleccione un municipio</option>
+                                {% for municipio in municipios %}
+                                <option value="{{ municipio.codigo_municipio }}">{{ municipio.nombre_municipio }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="tipo" class="form-label">Tipo</label>
+                            <select class="form-select" id="tipo" name="tipo" required>
+                                <option value="">Seleccione tipo</option>
+                                <option value="cliente">Cliente</option>
+                                <option value="empleado">Empleado</option>
+                            </select>
+                        </div>
+                        <div class="mb-3" id="sucursalField" style="display:none;">
+                            <label for="sucursal" class="form-label">Sucursal</label>
+                            <select class="form-select" id="sucursal" name="sucursal">
+                                <option value="">Seleccione una sucursal</option>
+                                {% for sucursal in sucursales %}
+                                <option value="{{ sucursal.id }}">{{ sucursal.nombre }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-3" id="direccionField" style="display:none;">
+                            <label for="direccion" class="form-label">Dirección</label>
+                            <input type="text" class="form-control" id="direccion" name="direccion">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Guardar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% block extra_js %}
+<script>
+    function mostrarCamposPorTipo(tipo) {
+        if (tipo === 'empleado') {
+            document.getElementById('sucursalField').style.display = '';
+            document.getElementById('direccionField').style.display = '';
+        } else {
+            document.getElementById('sucursalField').style.display = 'none';
+            document.getElementById('direccionField').style.display = 'none';
+        }
+    }
+    document.getElementById('tipo').addEventListener('change', function() {
+        mostrarCamposPorTipo(this.value);
+    });
+    // Al abrir el modal, resetear campos según el tipo seleccionado
+    document.getElementById('nuevaPersonaModal').addEventListener('show.bs.modal', function () {
+        mostrarCamposPorTipo(document.getElementById('tipo').value);
+    });
+    // Al hacer clic en los botones de filtro, ocultar campos de sucursal/dirección si es clientes
+    document.querySelectorAll('a[href*="?tipo=cliente"]').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.getElementById('sucursalField').style.display = 'none';
+            document.getElementById('direccionField').style.display = 'none';
+        });
+    });
+</script>
+{% endblock %}
+{% endblock %} 

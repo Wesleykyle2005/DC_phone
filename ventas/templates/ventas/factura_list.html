@@ -1,0 +1,318 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Facturas - DC_phone{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2>Facturas</h2>
+        </div>
+        <div class="col-md-4 text-end">
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#nuevaFacturaModal">
+                <i class="fas fa-plus me-2"></i>Nueva Factura
+            </button>
+        </div>
+    </div>
+
+    <!-- Barra de búsqueda -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <form method="get" class="d-flex">
+                <select name="search_type" class="form-select me-2" style="max-width: 180px;">
+                    <option value="cliente" {% if request.GET.search_type == 'cliente' %}selected{% endif %}>Cliente</option>
+                    <option value="empleado" {% if request.GET.search_type == 'empleado' %}selected{% endif %}>Empleado</option>
+                    <option value="sucursal" {% if request.GET.search_type == 'sucursal' %}selected{% endif %}>Sucursal</option>
+                </select>
+                <input type="text" name="search" class="form-control me-2" placeholder="Buscar facturas..." value="{{ request.GET.search }}">
+                <button type="submit" class="btn btn-outline-primary">
+                    <i class="fas fa-search"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Tabla de facturas -->
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Cliente</th>
+                    <th>Empleado</th>
+                    <th>Sucursal</th>
+                    <th>Fecha</th>
+                    <th>Total</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for factura in facturas %}
+                    {% if factura.estado == True %}
+                    <tr>
+                        <td>{{ factura.id_factura }}</td>
+                        <td>{{ factura.id_cliente.persona.nombre_completo }}</td>
+                        <td>{{ factura.id_empleado.persona.nombre_completo }}</td>
+                        <td>{{ factura.id_sucursal.nombre }}</td>
+                        <td>{{ factura.fecha|date:"d/m/Y H:i" }}</td>
+                        <td>${{ factura.total }}</td>
+                        <td>
+                            <!-- Botón para abrir el modal de confirmación -->
+                            <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#eliminarFacturaModal{{ factura.id_factura }}">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                            <a href="{% url 'ventas:factura-imprimir' factura.id_factura %}" class="btn btn-secondary btn-sm" title="Imprimir">
+                                <i class="fas fa-print"></i>
+                            </a>
+                            <!-- Modal de confirmación de eliminación -->
+                            <div class="modal fade" id="eliminarFacturaModal{{ factura.id_factura }}" tabindex="-1" aria-labelledby="eliminarFacturaModalLabel{{ factura.id_factura }}" aria-hidden="true">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title" id="eliminarFacturaModalLabel{{ factura.id_factura }}">Confirmar Eliminación</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            ¿Estás seguro de que deseas eliminar la factura #{{ factura.id_factura }}?
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                            <form method="post" action="{% url 'ventas:factura-delete' factura.id_factura %}" style="display:inline;">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn btn-danger">Eliminar</button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endif %}
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="text-center">No hay facturas disponibles.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Paginación -->
+    {% if is_paginated %}
+    <nav aria-label="Page navigation" class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page=1{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}" aria-label="First">
+                    <span aria-hidden="true">&laquo;&laquo;</span>
+                </a>
+            </li>
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}" aria-label="Previous">
+                    <span aria-hidden="true">&laquo;</span>
+                </a>
+            </li>
+            {% endif %}
+
+            {% for num in page_obj.paginator.page_range %}
+            {% if page_obj.number == num %}
+            <li class="page-item active"><a class="page-link" href="#">{{ num }}</a></li>
+            {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ num }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">{{ num }}</a>
+            </li>
+            {% endif %}
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}" aria-label="Next">
+                    <span aria-hidden="true">&raquo;</span>
+                </a>
+            </li>
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}" aria-label="Last">
+                    <span aria-hidden="true">&raquo;&raquo;</span>
+                </a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+</div>
+
+<!-- Modal para nueva factura -->
+<div class="modal fade" id="nuevaFacturaModal" tabindex="-1" aria-labelledby="nuevaFacturaModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="nuevaFacturaModalLabel">Nueva Factura</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" action="{% url 'ventas:factura-create' %}" id="facturaForm">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="id_cliente" class="form-label">Cliente</label>
+                        <select class="form-select" id="id_cliente" name="id_cliente" required>
+                            <option value="">Seleccione un cliente</option>
+                            {% for cliente in clientes %}
+                            <option value="{{ cliente.id_cliente }}">{{ cliente.persona.nombre_completo }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="id_empleado" class="form-label">Empleado</label>
+                        <select class="form-select" id="id_empleado" name="id_empleado" required>
+                            <option value="">Seleccione un empleado</option>
+                            {% for empleado in empleados %}
+                            <option value="{{ empleado.id_empleado }}">{{ empleado.persona.nombre_completo }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="id_sucursal" class="form-label">Sucursal</label>
+                        <select class="form-select" id="id_sucursal" name="id_sucursal" required>
+                            <option value="">Seleccione una sucursal</option>
+                            {% for sucursal in sucursales %}
+                            <option value="{{ sucursal.id }}">{{ sucursal.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div id="productosSection" style="display:none;">
+                        <hr>
+                        <h5>Productos</h5>
+                        <table class="table" id="productosTable">
+                            <thead>
+                                <tr>
+                                    <th>Producto</th>
+                                    <th>Precio</th>
+                                    <th>Cantidad</th>
+                                    <th>Subtotal</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            </tbody>
+                        </table>
+                        <button type="button" class="btn btn-secondary mb-2" id="addRowBtn" style="display:none;">Añadir producto</button>
+                        <div class="mb-3">
+                            <label class="form-label">Total:</label>
+                            <span id="totalFactura">$0.00</span>
+                            <input type="hidden" name="total" id="totalInput">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% block extra_js %}
+<script>
+    // productosData ahora debe estar agrupado por sucursal
+    const productosData = {};
+    {% for sucursal in sucursales %}
+        productosData[{{ sucursal.id }}] = [];
+    {% endfor %}
+    {% for p in productos_data %}
+        if (!productosData[{{ p.sucursal_id|default:'null' }}]) productosData[{{ p.sucursal_id|default:'null' }}] = [];
+        productosData[{{ p.sucursal_id|default:'null' }}].push({
+            id: {{ p.id }},
+            nombre: "{{ p.nombre }}",
+            precio: {{ p.precio }},
+            max_cantidad: {{ p.max_cantidad }}
+        });
+    {% endfor %}
+    let sucursalSeleccionada = null;
+    document.getElementById('id_sucursal').addEventListener('change', function() {
+        sucursalSeleccionada = this.value;
+        const productosSection = document.getElementById('productosSection');
+        const addRowBtn = document.getElementById('addRowBtn');
+        const tbody = document.querySelector('#productosTable tbody');
+        tbody.innerHTML = '';
+        document.getElementById('totalFactura').textContent = '$0.00';
+        document.getElementById('totalInput').value = '0.00';
+        if (sucursalSeleccionada && productosData[sucursalSeleccionada] && productosData[sucursalSeleccionada].length > 0) {
+            productosSection.style.display = '';
+            addRowBtn.style.display = '';
+            addRowBtn.click(); // Añadir una fila por defecto
+        } else {
+            productosSection.style.display = 'none';
+            addRowBtn.style.display = 'none';
+        }
+    });
+    function crearFilaProducto() {
+        const row = document.createElement('tr');
+        let select = '<select class="form-select producto-select" name="producto[]" required>';
+        select += '<option value="">Seleccione</option>';
+        if (sucursalSeleccionada && productosData[sucursalSeleccionada]) {
+            productosData[sucursalSeleccionada].forEach(p => {
+                select += `<option value="${p.id}" data-precio="${p.precio}" data-max="${p.max_cantidad}">${p.nombre}</option>`;
+            });
+        }
+        select += '</select>';
+        row.innerHTML = `
+            <td>${select}</td>
+            <td><input type="number" class="form-control precio-input" name="precio[]" readonly></td>
+            <td><input type="number" class="form-control cantidad-input" name="cantidad[]" min="1" required></td>
+            <td><input type="number" class="form-control subtotal-input" name="subtotal[]" readonly></td>
+            <td><button type="button" class="btn btn-danger btn-sm remove-row">&times;</button></td>
+        `;
+        return row;
+    }
+    function actualizarTotal() {
+        let total = 0;
+        document.querySelectorAll('#productosTable .subtotal-input').forEach(input => {
+            total += parseFloat(input.value) || 0;
+        });
+        document.getElementById('totalFactura').textContent = `$${total.toFixed(2)}`;
+        document.getElementById('totalInput').value = total.toFixed(2);
+    }
+    function actualizarFila(row) {
+        const select = row.querySelector('.producto-select');
+        const precioInput = row.querySelector('.precio-input');
+        const cantidadInput = row.querySelector('.cantidad-input');
+        const subtotalInput = row.querySelector('.subtotal-input');
+        const selected = select.options[select.selectedIndex];
+        const precio = selected.getAttribute('data-precio') || 0;
+        const max = selected.getAttribute('data-max') || 1;
+        precioInput.value = precio;
+        cantidadInput.max = max;
+        if (parseInt(cantidadInput.value) > parseInt(max)) {
+            cantidadInput.value = max;
+        }
+        subtotalInput.value = (parseFloat(precio) * (parseInt(cantidadInput.value) || 0)).toFixed(2);
+        actualizarTotal();
+    }
+    document.getElementById('addRowBtn').addEventListener('click', function() {
+        const tbody = document.querySelector('#productosTable tbody');
+        const row = crearFilaProducto();
+        tbody.appendChild(row);
+        // Eventos
+        row.querySelector('.producto-select').addEventListener('change', function() {
+            actualizarFila(row);
+        });
+        row.querySelector('.cantidad-input').addEventListener('input', function() {
+            actualizarFila(row);
+        });
+        row.querySelector('.remove-row').addEventListener('click', function() {
+            row.remove();
+            actualizarTotal();
+        });
+    });
+    // Validar que haya al menos un producto antes de enviar
+    document.getElementById('facturaForm').addEventListener('submit', function(e) {
+        const filas = document.querySelectorAll('#productosTable tbody tr');
+        if (filas.length === 0) {
+            alert('Debe añadir al menos un producto.');
+            e.preventDefault();
+        }
+    });
+</script>
+{% endblock %}
+{% endblock %} 
