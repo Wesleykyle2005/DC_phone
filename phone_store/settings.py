@@ -82,10 +82,16 @@ WSGI_APPLICATION = 'phone_store.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'dc_phone',
+        'USER': 'dc_phone_admin',
+        'PASSWORD': 'nOUPWXpM5UoywPskvC52yepxgoZ8YTF1',
+        'HOST': 'dpg-d1apiouuk2gs73914jr0-a.oregon-postgres.render.com',
+        'PORT': '5432',  
     }
 }
+
+
 
 
 # Password validation
