@@ -1,9 +1,6 @@
 from django.shortcuts import render, redirect
 from django.views import View
-from django.views.generic import ListView, CreateView, DetailView, DeleteView
 from django.urls import reverse_lazy
-from django.contrib.auth.mixins import LoginRequiredMixin
-from django.http import HttpResponseRedirect, HttpResponse
 from django.contrib import messages
 from django.db.models import Q
 from .models import Factura, DetalleFactura
@@ -22,126 +19,56 @@ from PIL import Image
 # Create your views here.
 
 # Vistas para Facturas
-class FacturaListView(LoginRequiredMixin, ListView):
-    model = Factura
+class FacturaListView(View):
     template_name = 'ventas/factura_list.html'
-    context_object_name = 'facturas'
-    paginate_by = 10
 
-    def get_queryset(self):
-        queryset = Factura.objects.filter(estado=True).order_by('-fecha')
-        search_query = self.request.GET.get('search', '')
-        search_type = self.request.GET.get('search_type', 'cliente')
-        if search_query:
-            if search_type == 'cliente':
-                queryset = queryset.filter(
-                    Q(id_cliente__persona__nombre_completo__icontains=search_query)
-                )
-            elif search_type == 'empleado':
-                queryset = queryset.filter(
-                    Q(id_empleado__persona__nombre_completo__icontains=search_query)
-                )
-            elif search_type == 'sucursal':
-                queryset = queryset.filter(
-                    Q(id_sucursal__nombre__icontains=search_query)
-                )
-        return queryset
+    def get(self, request):
+        if not request.session.get('usuario'):
+            return redirect('usuarios:login')
+        # Aquí deberías consumir la API para obtener facturas
+        facturas = []
+        return render(request, self.template_name, {'facturas': facturas})
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['clientes'] = Cliente.objects.all()
-        context['empleados'] = Empleado.objects.all()
-        context['sucursales'] = Sucursal.objects.all()
-        # Productos activos y sus cantidades máximas por inventario
-        productos = Producto.objects.filter(estado=True)
-        inventario = Inventario.objects.filter(estado=True)
-        productos_data = []
-        for inv in inventario:
-            if inv.cantidad > 0:
-                productos_data.append({
-                    'id': inv.producto.id,
-                    'nombre': inv.producto.nombre,
-                    'precio': float(inv.producto.precio),
-                    'max_cantidad': inv.cantidad,
-                    'sucursal_id': inv.sucursal.id
-                })
-        context['productos_data'] = productos_data
-        return context
-
-class FacturaCreateView(LoginRequiredMixin, View):
-    def get(self, request, *args, **kwargs):
-        clientes = Cliente.objects.all()
-        empleados = Empleado.objects.all()
-        sucursales = Sucursal.objects.all()
-        productos = Producto.objects.filter(estado=True)
-        inventario = Inventario.objects.filter(estado=True)
-        productos_data = []
-        for inv in inventario:
-            if inv.cantidad > 0:
-                productos_data.append({
-                    'id': inv.producto.id,
-                    'nombre': inv.producto.nombre,
-                    'precio': float(inv.producto.precio),
-                    'max_cantidad': inv.cantidad,
-                    'sucursal_id': inv.sucursal.id
-                })
-        return render(request, 'ventas/factura_list.html', {
-            'clientes': clientes,
-            'empleados': empleados,
-            'sucursales': sucursales,
-            'productos_data': productos_data,
-        })
-
-    def post(self, request, *args, **kwargs):
-        id_cliente = request.POST.get('id_cliente')
-        id_empleado = request.POST.get('id_empleado')
-        id_sucursal = request.POST.get('id_sucursal')
-        productos = request.POST.getlist('producto[]')
-        cantidades = request.POST.getlist('cantidad[]')
-        if not (id_cliente and id_empleado and id_sucursal and productos and cantidades and len(productos) == len(cantidades)):
-            messages.error(request, 'Todos los campos son obligatorios y debe seleccionar al menos un producto.')
-            return redirect('ventas:factura-list')
-        # Crear factura (total se calcula después)
-        factura = Factura.objects.create(
-            id_cliente_id=id_cliente,
-            id_empleado_id=id_empleado,
-            id_sucursal_id=id_sucursal,
-            total=0,
-            estado=True
-        )
-        total = 0
-        for prod_id, cant in zip(productos, cantidades):
-            if not prod_id or not cant:
-                continue
-            producto = Producto.objects.get(pk=prod_id)
-            precio = producto.precio
-            subtotal = int(cant) * float(precio)
-            DetalleFactura.objects.create(
-                id_factura=factura,
-                id_producto=producto,
-                cantidad=cant,
-                precio_unitario=precio,
-                subtotal=subtotal
-            )
-            total += subtotal
-        factura.total = total
-        factura.save()
-        messages.success(request, f'Factura #{factura.id_factura} creada exitosamente.')
-        return redirect('ventas:factura-list')
-
-class FacturaDeleteView(LoginRequiredMixin, DeleteView):
-    model = Factura
+class FacturaCreateView(View):
+    template_name = 'ventas/factura_form.html'
     success_url = reverse_lazy('ventas:factura-list')
 
-    def post(self, request, *args, **kwargs):
-        self.object = self.get_object()
-        self.object.estado = False
-        self.object.save()
-        messages.success(request, f'Factura #{self.object.id_factura} desactivada exitosamente.')
-        return HttpResponseRedirect(self.get_success_url())
+    def get(self, request):
+        if not request.session.get('usuario'):
+            return redirect('usuarios:login')
+        return render(request, self.template_name)
 
-class FacturaPDFView(LoginRequiredMixin, View):
+    def post(self, request):
+        # Aquí deberías consumir la API para crear factura
+        return redirect(self.success_url)
+
+class FacturaDetailView(View):
+    template_name = 'ventas/factura_detail.html'
+
     def get(self, request, pk):
+        if not request.session.get('usuario'):
+            return redirect('usuarios:login')
+        # Aquí deberías consumir la API para obtener la factura
+        factura = {}
+        return render(request, self.template_name, {'factura': factura})
+
+class FacturaDeleteView(View):
+    template_name = 'ventas/factura_confirm_delete.html'
+    success_url = reverse_lazy('ventas:factura-list')
+
+    def get(self, request, pk):
+        if not request.session.get('usuario'):
+            return redirect('usuarios:login')
+        return render(request, self.template_name)
+
+    def post(self, request, pk):
+        # Aquí deberías consumir la API para eliminar factura
+        return redirect(self.success_url)
+
+class FacturaPDFView(View):
+    def get(self, request, pk):
+        if not request.session.get('usuario'):
+            return redirect('usuarios:login')
         factura = Factura.objects.select_related('id_cliente__persona', 'id_empleado__persona', 'id_sucursal').get(pk=pk)
         detalles = DetalleFactura.objects.filter(id_factura=factura)
         response = HttpResponse(content_type='application/pdf')

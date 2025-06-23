@@ -1,0 +1,77 @@
+https://dc-phone-api.onrender.com/api/Municipio
+https://dc-phone-api.onrender.com/api/Municipio/{id}
+https://dc-phone-api.onrender.com/api/Municipio  (POST)
+https://dc-phone-api.onrender.com/api/Municipio/{id}  (PUT)
+https://dc-phone-api.onrender.com/api/Municipio/{id}  (DELETE)
+
+https://dc-phone-api.onrender.com/api/Rol
+https://dc-phone-api.onrender.com/api/Rol/{id}
+https://dc-phone-api.onrender.com/api/Rol  (POST)
+https://dc-phone-api.onrender.com/api/Rol/{id}  (PUT)
+https://dc-phone-api.onrender.com/api/Rol/{id}  (DELETE)
+
+https://dc-phone-api.onrender.com/api/Categoria
+https://dc-phone-api.onrender.com/api/Categoria/{id}
+https://dc-phone-api.onrender.com/api/Categoria  (POST)
+https://dc-phone-api.onrender.com/api/Categoria/{id}  (PUT)
+https://dc-phone-api.onrender.com/api/Categoria/{id}  (DELETE)
+
+https://dc-phone-api.onrender.com/api/Marca
+https://dc-phone-api.onrender.com/api/Marca/{id}
+https://dc-phone-api.onrender.com/api/Marca  (POST)
+https://dc-phone-api.onrender.com/api/Marca/{id}  (PUT)
+https://dc-phone-api.onrender.com/api/Marca/{id}  (DELETE)
+
+https://dc-phone-api.onrender.com/api/Sucursal
+https://dc-phone-api.onrender.com/api/Sucursal/{id}
+https://dc-phone-api.onrender.com/api/Sucursal  (POST)
+https://dc-phone-api.onrender.com/api/Sucursal/{id}  (PUT)
+https://dc-phone-api.onrender.com/api/Sucursal/{id}  (DELETE)
+
+https://dc-phone-api.onrender.com/api/Persona
+https://dc-phone-api.onrender.com/api/Persona/{id}
+https://dc-phone-api.onrender.com/api/Persona  (POST)
+https://dc-phone-api.onrender.com/api/Persona/{id}  (PUT)
+https://dc-phone-api.onrender.com/api/Persona/{id}  (DELETE)
+
+https://dc-phone-api.onrender.com/api/Producto
+https://dc-phone-api.onrender.com/api/Producto/{id}
+https://dc-phone-api.onrender.com/api/Producto  (POST)
+https://dc-phone-api.onrender.com/api/Producto/{id}  (PUT)
+https://dc-phone-api.onrender.com/api/Producto/{id}  (DELETE)
+
+https://dc-phone-api.onrender.com/api/Cliente
+https://dc-phone-api.onrender.com/api/Cliente/{id}
+https://dc-phone-api.onrender.com/api/Cliente  (POST)
+https://dc-phone-api.onrender.com/api/Cliente/{id}  (PUT)
+https://dc-phone-api.onrender.com/api/Cliente/{id}  (DELETE)
+
+https://dc-phone-api.onrender.com/api/Empleado
+https://dc-phone-api.onrender.com/api/Empleado/{id}
+https://dc-phone-api.onrender.com/api/Empleado  (POST)
+https://dc-phone-api.onrender.com/api/Empleado/{id}  (PUT)
+https://dc-phone-api.onrender.com/api/Empleado/{id}  (DELETE)
+
+https://dc-phone-api.onrender.com/api/Usuario
+https://dc-phone-api.onrender.com/api/Usuario/{id}
+https://dc-phone-api.onrender.com/api/Usuario  (POST)
+https://dc-phone-api.onrender.com/api/Usuario/{id}  (PUT)
+https://dc-phone-api.onrender.com/api/Usuario/{id}  (DELETE)
+
+https://dc-phone-api.onrender.com/api/Inventario
+https://dc-phone-api.onrender.com/api/Inventario/{id}
+https://dc-phone-api.onrender.com/api/Inventario  (POST)
+https://dc-phone-api.onrender.com/api/Inventario/{id}  (PUT)
+https://dc-phone-api.onrender.com/api/Inventario/{id}  (DELETE)
+
+https://dc-phone-api.onrender.com/api/Factura
+https://dc-phone-api.onrender.com/api/Factura/{id}
+https://dc-phone-api.onrender.com/api/Factura  (POST)
+https://dc-phone-api.onrender.com/api/Factura/{id}  (PUT)
+https://dc-phone-api.onrender.com/api/Factura/{id}  (DELETE)
+
+https://dc-phone-api.onrender.com/api/DetalleFactura
+https://dc-phone-api.onrender.com/api/DetalleFactura/{id}
+https://dc-phone-api.onrender.com/api/DetalleFactura  (POST)
+https://dc-phone-api.onrender.com/api/DetalleFactura/{id}  (PUT)
+https://dc-phone-api.onrender.com/api/DetalleFactura/{id}  (DELETE)

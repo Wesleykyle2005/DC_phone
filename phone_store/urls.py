@@ -16,16 +16,17 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from django.shortcuts import redirect
-from django.contrib.auth.decorators import login_required
 from django.views.generic import TemplateView
 
 def redirect_to_login(request):
+    if request.session.get('usuario'):
+        return redirect('core:welcome')
     return redirect('usuarios:login')
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', redirect_to_login),  # Redirige la raíz al login
-    path('welcome/', login_required(TemplateView.as_view(template_name='welcome.html')), name='welcome'),
+    path('welcome/', TemplateView.as_view(template_name='welcome.html'), name='welcome'),
     path('core/', include('core.urls')),
     path('ventas/', include('ventas.urls')),
     path('inventario/', include('inventario.urls')),

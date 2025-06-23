@@ -44,11 +44,12 @@
                     <th>Sucursal</th>
                     <th>Dirección</th>
                     {% endif %}
+                    <th>Acciones</th>
                 </tr>
             </thead>
             <tbody>
                 {% if tipo_filtro == 'empleado' %}
-                    {% for empleado in empleados_page %}
+                    {% for empleado in empleados_page.object_list %}
                     <tr>
                         <td>{{ empleado.persona.dni }}</td>
                         <td>{{ empleado.persona.nombre_completo }}</td>
@@ -57,21 +58,39 @@
                         <td>Empleado</td>
                         <td>{{ empleado.id_sucursal.nombre }}</td>
                         <td>{{ empleado.direccion }}</td>
+                        <td>
+                            <form method="post" action="{% url 'usuarios:persona-delete' empleado.id %}" style="display: inline;">
+                                {% csrf_token %}
+                                <input type="hidden" name="tipo" value="empleado">
+                                <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('¿Está seguro de que desea eliminar este empleado?')">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </form>
+                        </td>
                     </tr>
                     {% empty %}
-                    <tr><td colspan="7" class="text-center">No hay empleados disponibles.</td></tr>
+                    <tr><td colspan="8" class="text-center">No hay empleados disponibles.</td></tr>
                     {% endfor %}
                 {% else %}
-                    {% for cliente in clientes_page %}
+                    {% for cliente in clientes_page.object_list %}
                     <tr>
                         <td>{{ cliente.persona.dni }}</td>
                         <td>{{ cliente.persona.nombre_completo }}</td>
                         <td>{{ cliente.persona.telefono }}</td>
                         <td>{{ cliente.persona.codigo_municipio.nombre_municipio }}</td>
                         <td>Cliente</td>
+                        <td>
+                            <form method="post" action="{% url 'usuarios:persona-delete' cliente.id %}" style="display: inline;">
+                                {% csrf_token %}
+                                <input type="hidden" name="tipo" value="cliente">
+                                <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('¿Está seguro de que desea eliminar este cliente?')">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </form>
+                        </td>
                     </tr>
                     {% empty %}
-                    <tr><td colspan="5" class="text-center">No hay clientes disponibles.</td></tr>
+                    <tr><td colspan="6" class="text-center">No hay clientes disponibles.</td></tr>
                     {% endfor %}
                 {% endif %}
             </tbody>

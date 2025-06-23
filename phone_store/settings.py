@@ -67,7 +67,7 @@ TEMPLATES = [
             'context_processors': [
                 'django.template.context_processors.debug',
                 'django.template.context_processors.request',
-                'django.contrib.auth.context_processors.auth',
+                'django.contrib.auth.context_processors.auth',  # Habilitado para el admin
                 'django.contrib.messages.context_processors.messages',
             ],
         },
@@ -141,4 +141,4 @@ LOGIN_URL = 'usuarios:login'
 LOGIN_REDIRECT_URL = None
 LOGOUT_REDIRECT_URL = 'usuarios:login'
 
-AUTH_USER_MODEL = 'usuarios.Usuario'
+# AUTH_USER_MODEL = 'usuarios.Usuario'  # Comentado porque usamos API externa

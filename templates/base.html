@@ -32,7 +32,7 @@
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
-                {% if user.is_authenticated %}
+                {% if request.session.usuario %}
                 <ul class="navbar-nav me-auto">
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'productos:producto-list' %}">Productos</a>
@@ -55,10 +55,10 @@
                 </ul>
                 {% endif %}
                 <ul class="navbar-nav">
-                    {% if user.is_authenticated %}
+                    {% if request.session.usuario %}
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
-                                <i class="fas fa-user me-1"></i>{{ user.username }}
+                                <i class="fas fa-user me-1"></i>{{ request.session.usuario.nombreUsuario }}
                             </a>
                             <ul class="dropdown-menu dropdown-menu-end">
                                 <li><a class="dropdown-item" href="{% url 'usuarios:persona-list' %}">Mi Perfil</a></li>
