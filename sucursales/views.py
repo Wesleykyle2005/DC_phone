@@ -21,16 +21,21 @@ class SucursalListView(View):
                 sucursales = []
                 for s in sucursales_api:
                     if s.get('estadoSucursal', True):
+                        municipio_data = s.get('municipio')
+                        if municipio_data is None:
+                            municipio = {'nombre_municipio': 'Indefinido', 'codigo_municipio': ''}
+                        else:
+                            municipio = {
+                                'nombre_municipio': municipio_data.get('nombreMunicipio', 'N/A'),
+                                'codigo_municipio': municipio_data.get('idMunicipio', '')
+                            }
                         sucursal = {
                             'id': s.get('idSucursal'),
                             'nombre': s.get('nombreSucursal'),
                             'direccion': s.get('direccionSucursal'),
                             'telefono': s.get('telefonoSucursal'),
                             'estado': s.get('estadoSucursal'),
-                            'municipio': {
-                                'nombre_municipio': s.get('municipio', {}).get('nombreMunicipio', 'N/A'),
-                                'codigo_municipio': s.get('municipio', {}).get('idMunicipio', '')
-                            }
+                            'municipio': municipio
                         }
                         sucursales.append(sucursal)
                 # Búsqueda

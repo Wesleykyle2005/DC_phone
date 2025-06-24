@@ -47,7 +47,7 @@
                         <td>{{ sucursal.nombre }}</td>
                         <td>{{ sucursal.direccion }}</td>
                         <td>{{ sucursal.telefono }}</td>
-                        <td>{{ sucursal.municipio.nombre_municipio }}</td>
+                        <td>{% if sucursal.municipio.nombre_municipio %}{{ sucursal.municipio.nombre_municipio }}{% else %}Indefinido{% endif %}</td>
                         <td>
                             <!-- Botón para abrir el modal de confirmación -->
                             <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#eliminarSucursalModal{{ sucursal.id }}">
