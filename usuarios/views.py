@@ -20,7 +20,7 @@ class UsuarioListView(View):
 
 class UsuarioCreateView(View):
     template_name = 'usuarios/usuario_form.html'
-    success_url = reverse_lazy('usuarios:usuario-list')
+    success_url = reverse_lazy('usuarios:persona-list')
 
     def get(self, request):
         usuario = request.session.get('usuario')
@@ -29,7 +29,66 @@ class UsuarioCreateView(View):
         return render(request, self.template_name)
 
     def post(self, request):
-        # Aquí deberías consumir la API para crear un usuario
+        if not request.session.get('usuario'):
+            return redirect('usuarios:login')
+        try:
+            nombre_usuario = request.POST.get('nombreUsuario')
+            contrasena_usuario = request.POST.get('contrasenaUsuario')
+            id_empleado = request.POST.get('idEmpleado')
+            # Nuevos campos
+            nombre = request.POST.get('empleado_nombre', '')
+            apellido = request.POST.get('apellido', '')
+            correo = request.POST.get('correo', '')
+            id_rol = request.POST.get('idRol', 1)
+            es_activo = 1
+            es_personal = 1
+            fecha_registro = None
+            from datetime import datetime
+            fecha_registro = datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
+            es_superusuario = 0
+            ultimo_inicio = None
+            # Validar campos obligatorios
+            campos_faltantes = []
+            if not nombre_usuario:
+                campos_faltantes.append('nombre de usuario')
+            if not contrasena_usuario:
+                campos_faltantes.append('contraseña')
+            if not id_empleado:
+                campos_faltantes.append('empleado')
+            if not apellido:
+                campos_faltantes.append('apellido')
+            if not correo:
+                campos_faltantes.append('correo electrónico')
+            if not id_rol or str(id_rol) == '0':
+                campos_faltantes.append('rol')
+            if campos_faltantes:
+                messages.error(request, f'Todos los campos son obligatorios para crear el usuario. Faltan: {", ".join(campos_faltantes)}')
+                return redirect('usuarios:persona-list')
+            url = "https://dc-phone-api.onrender.com/api/Usuario"
+            payload = {
+                "NombreUsuario": nombre_usuario,
+                "contrasenaUsuario": contrasena_usuario,
+                "idEmpleado": int(id_empleado),
+                "estadoUsuario": True,
+                "Nombre": nombre,
+                "Apellido": apellido,
+                "CorreoElectronico": correo,
+                "IdRol": int(id_rol),
+                "EsActivo": True,
+                "EsPersonal": True,
+                "FechaRegistro": fecha_registro,
+                "EsSuperUsuario": False,
+                "UltimoInicioSesion": ultimo_inicio
+            }
+            response = requests.post(url, json=payload, timeout=60)
+            if response.status_code in (200, 201, 204):
+                messages.success(request, f'Usuario "{nombre_usuario}" creado exitosamente.')
+            else:
+                messages.error(request, f'Error al crear usuario: {response.status_code} - {response.text}')
+        except requests.Timeout:
+            messages.error(request, 'Timeout: La API tardó demasiado en responder.')
+        except Exception as e:
+            messages.error(request, f'Error al crear usuario: {str(e)}')
         return redirect(self.success_url)
 
 class UsuarioUpdateView(View):
@@ -59,7 +118,32 @@ class UsuarioDeleteView(View):
         return render(request, self.template_name)
 
     def post(self, request, pk):
-        # Aquí deberías consumir la API para eliminar el usuario
+        if not request.session.get('usuario'):
+            return redirect('usuarios:login')
+        try:
+            tipo = request.POST.get('tipo')
+            if tipo == 'empleado':
+                # Intentar eliminar cliente asociado primero (si existe)
+                try:
+                    cliente_url = f"https://dc-phone-api.onrender.com/api/Cliente/{pk}"
+                    requests.delete(cliente_url, timeout=30)
+                except Exception as e:
+                    print(f"No se pudo eliminar cliente asociado: {e}")
+                # Luego eliminar empleado
+                url = f"https://dc-phone-api.onrender.com/api/Empleado/{pk}"
+                response = requests.delete(url, timeout=60)
+            else:
+                # Eliminar cliente
+                url = f"https://dc-phone-api.onrender.com/api/Cliente/{pk}"
+                response = requests.delete(url, timeout=60)
+            if response.status_code in (200, 204):
+                messages.success(request, f'{tipo.capitalize()} eliminado exitosamente.')
+            else:
+                messages.error(request, f'Error al eliminar {tipo}: {response.status_code}')
+        except requests.Timeout:
+            messages.error(request, 'Timeout: La API tardó demasiado en responder.')
+        except Exception as e:
+            messages.error(request, f'Error al eliminar {tipo}: {str(e)}')
         return redirect(self.success_url)
 
 # Vistas de Autenticación
@@ -94,6 +178,8 @@ class PersonaListCreateView(View):
             if tipo_filtro == 'empleado':
                 # Cargar empleados
                 empleados_response = requests.get("https://dc-phone-api.onrender.com/api/Empleado", timeout=60)
+                usuarios_response = requests.get("https://dc-phone-api.onrender.com/api/Usuario", timeout=60)
+                usuarios_api = usuarios_response.json() if usuarios_response.status_code == 200 else []
                 if empleados_response.status_code == 200:
                     empleados_api = empleados_response.json()
                     # Mapear empleados con sus datos de persona
@@ -101,6 +187,7 @@ class PersonaListCreateView(View):
                     for empleado_api in empleados_api:
                         # Obtener datos de la persona asociada
                         persona_id = empleado_api.get('idPersona')
+                        usuario_empleado = next((u for u in usuarios_api if u.get('idEmpleado') == empleado_api.get('idEmpleado')), None)
                         if persona_id:
                             persona_response = requests.get(f"https://dc-phone-api.onrender.com/api/Persona/{persona_id}", timeout=60)
                             if persona_response.status_code == 200:
@@ -134,7 +221,8 @@ class PersonaListCreateView(View):
                                     'id_sucursal': {
                                         'nombre': sucursal_nombre
                                     },
-                                    'direccion': empleado_api.get('direccionEmpleado')
+                                    'direccion': empleado_api.get('direccionEmpleado'),
+                                    'usuario': usuario_empleado
                                 }
                                 empleados.append(empleado)
                     # Aplicar búsqueda
@@ -205,11 +293,21 @@ class PersonaListCreateView(View):
                         'previous_page_number': None,
                         'next_page_number': None
                     })()
+            # Cargar roles para el modal de usuario
+            roles = []
+            try:
+                roles_response = requests.get("https://dc-phone-api.onrender.com/api/Rol", timeout=60)
+                if roles_response.status_code == 200:
+                    roles_api = roles_response.json()
+                    roles = [{'id': r.get('idRol'), 'nombre': r.get('nombreRol')} for r in roles_api if r.get('estadoRol', True)]
+            except Exception as e:
+                print(f"Error cargando roles: {e}")
             return render(request, 'usuarios/persona_list.html', {
                 'clientes_page': clientes_page,
                 'empleados_page': empleados_page,
                 'municipios': municipios,
                 'sucursales': sucursales,
+                'roles': roles,
                 'tipo_filtro': tipo_filtro,
                 'search': search,
             })
@@ -238,6 +336,13 @@ class PersonaListCreateView(View):
         if not request.session.get('usuario'):
             return redirect('usuarios:login')
         try:
+            # Cargar municipios para validación
+            municipios_response = requests.get("https://dc-phone-api.onrender.com/api/Municipio", timeout=60)
+            municipios = []
+            if municipios_response.status_code == 200:
+                municipios_api = municipios_response.json()
+                municipios = [{'codigo_municipio': m.get('idMunicipio'), 'nombre_municipio': m.get('nombreMunicipio')} 
+                              for m in municipios_api]
             dni = request.POST.get('dni')
             nombre_completo = request.POST.get('nombre_completo')
             telefono = request.POST.get('telefono')
@@ -248,6 +353,11 @@ class PersonaListCreateView(View):
             # Validar campos obligatorios
             if not (dni and nombre_completo and municipio_id and tipo):
                 messages.error(request, 'Todos los campos obligatorios deben ser completados.')
+                return redirect('usuarios:persona-list')
+            # Validar municipio
+            municipios_validos = [str(m['codigo_municipio']) for m in municipios]
+            if municipio_id not in municipios_validos:
+                messages.error(request, 'El municipio seleccionado no es válido o ha sido eliminado.')
                 return redirect('usuarios:persona-list')
             # Crear persona primero
             persona_url = "https://dc-phone-api.onrender.com/api/Persona"
@@ -260,11 +370,14 @@ class PersonaListCreateView(View):
             }
             persona_response = requests.post(persona_url, json=persona_payload, timeout=60)
             if persona_response.status_code not in (200, 201, 204):
-                messages.error(request, f'Error al crear persona: {persona_response.status_code}')
+                messages.error(request, f'Error al crear persona: {persona_response.status_code} - {persona_response.text}')
                 return redirect('usuarios:persona-list')
             # Obtener el ID de la persona creada
             persona_data = persona_response.json()
             persona_id = persona_data.get('idPersona')
+            if not persona_id:
+                messages.error(request, 'No se pudo obtener el ID de la persona creada.')
+                return redirect('usuarios:persona-list')
             if tipo == 'empleado':
                 # Validar campos específicos de empleado
                 if not (sucursal_id and direccion):
@@ -281,7 +394,11 @@ class PersonaListCreateView(View):
                 if empleado_response.status_code in (200, 201, 204):
                     messages.success(request, f'Empleado "{nombre_completo}" creado exitosamente.')
                 else:
-                    messages.error(request, f'Error al crear empleado: {empleado_response.status_code}')
+                    try:
+                        error_msg = empleado_response.json()
+                    except Exception:
+                        error_msg = empleado_response.text
+                    messages.error(request, f'Error al crear empleado: {empleado_response.status_code} - {error_msg}')
             else:
                 # Crear cliente
                 cliente_url = "https://dc-phone-api.onrender.com/api/Cliente"
@@ -292,7 +409,11 @@ class PersonaListCreateView(View):
                 if cliente_response.status_code in (200, 201, 204):
                     messages.success(request, f'Cliente "{nombre_completo}" creado exitosamente.')
                 else:
-                    messages.error(request, f'Error al crear cliente: {cliente_response.status_code}')
+                    try:
+                        error_msg = cliente_response.json()
+                    except Exception:
+                        error_msg = cliente_response.text
+                    messages.error(request, f'Error al crear cliente: {cliente_response.status_code} - {error_msg}')
         except requests.Timeout:
             messages.error(request, 'Timeout: La API tardó demasiado en responder.')
         except ValueError:
@@ -320,7 +441,7 @@ class PersonaDeleteView(View):
             
             response = requests.delete(url, timeout=60)
             
-            if response.status_code == 200:
+            if response.status_code in (200, 204):
                 messages.success(request, f'{tipo.capitalize()} eliminado exitosamente.')
             else:
                 messages.error(request, f'Error al eliminar {tipo}: {response.status_code}')

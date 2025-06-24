@@ -43,6 +43,7 @@
                     {% if tipo_filtro == 'empleado' %}
                     <th>Sucursal</th>
                     <th>Dirección</th>
+                    <th>Usuario</th>
                     {% endif %}
                     <th>Acciones</th>
                 </tr>
@@ -58,6 +59,15 @@
                         <td>Empleado</td>
                         <td>{{ empleado.id_sucursal.nombre }}</td>
                         <td>{{ empleado.direccion }}</td>
+                        <td>
+                            {% if empleado.usuario %}
+                                {{ empleado.usuario.nombreUsuario }}
+                            {% else %}
+                                <button class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#crearUsuarioModal" data-empleado-id="{{ empleado.id }}" data-empleado-nombre="{{ empleado.persona.nombre_completo }}">
+                                    Crear usuario
+                                </button>
+                            {% endif %}
+                        </td>
                         <td>
                             <form method="post" action="{% url 'usuarios:persona-delete' empleado.id %}" style="display: inline;">
                                 {% csrf_token %}
@@ -202,6 +212,83 @@
             </div>
         </div>
     </div>
+    <!-- Modal para crear usuario -->
+    <div class="modal fade" id="crearUsuarioModal" tabindex="-1" aria-labelledby="crearUsuarioModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="crearUsuarioModalLabel">Crear Usuario para Empleado</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form method="post" action="{% url 'usuarios:usuario-create' %}">
+                    {% csrf_token %}
+                    <div class="modal-body">
+                        <input type="hidden" id="usuarioEmpleadoId" name="idEmpleado">
+                        <div class="mb-3">
+                            <label for="usuarioEmpleadoNombre" class="form-label">Empleado</label>
+                            <input type="text" class="form-control" id="usuarioEmpleadoNombre" name="empleado_nombre" readonly>
+                        </div>
+                        <div class="mb-3">
+                            <label for="nombreUsuario" class="form-label">Nombre de usuario</label>
+                            <input type="text" class="form-control" id="nombreUsuario" name="nombreUsuario" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="apellidoUsuario" class="form-label">Apellido</label>
+                            <input type="text" class="form-control" id="apellidoUsuario" name="apellido" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="correoUsuario" class="form-label">Correo electrónico</label>
+                            <input type="email" class="form-control" id="correoUsuario" name="correo" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="contrasenaUsuario" class="form-label">Contraseña</label>
+                            <input type="password" class="form-control" id="contrasenaUsuario" name="contrasenaUsuario" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="rolUsuario" class="form-label">Rol</label>
+                            <select class="form-select" id="rolUsuario" name="idRol" required>
+                                <option value="">Seleccione un rol</option>
+                                {% for rol in roles %}
+                                    <option value="{{ rol.id }}">{{ rol.nombre }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Crear Usuario</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <!-- Modal de mensajes -->
+    {% if messages %}
+    <div class="modal fade" id="mensajeModal" tabindex="-1" aria-labelledby="mensajeModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="mensajeModalLabel">Mensaje</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} mb-0">{{ message }}</div>
+                    {% endfor %}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var mensajeModal = new bootstrap.Modal(document.getElementById('mensajeModal'));
+            mensajeModal.show();
+        });
+    </script>
+    {% endif %}
 </div>
 {% block extra_js %}
 <script>
@@ -227,6 +314,19 @@
             document.getElementById('sucursalField').style.display = 'none';
             document.getElementById('direccionField').style.display = 'none';
         });
+    });
+    // Modal de crear usuario: pasar datos del empleado al abrir el modal
+    document.addEventListener('DOMContentLoaded', function() {
+        var crearUsuarioModal = document.getElementById('crearUsuarioModal');
+        if (crearUsuarioModal) {
+            crearUsuarioModal.addEventListener('show.bs.modal', function (event) {
+                var button = event.relatedTarget;
+                var empleadoId = button.getAttribute('data-empleado-id');
+                var empleadoNombre = button.getAttribute('data-empleado-nombre');
+                document.getElementById('usuarioEmpleadoId').value = empleadoId;
+                document.getElementById('usuarioEmpleadoNombre').value = empleadoNombre;
+            });
+        }
     });
 </script>
 {% endblock %}
