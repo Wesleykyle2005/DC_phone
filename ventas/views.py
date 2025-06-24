@@ -97,7 +97,7 @@ class FacturaListView(View):
         for inventario in inventarios:
             producto = next((p for p in productos if p.get('idProducto') == inventario.get('idProducto')), None)
             sucursal = next((s for s in sucursales if s.get('idSucursal') == inventario.get('idSucursal')), None)
-            if producto and sucursal:
+            if producto is not None and sucursal is not None:
                 productos_data.append({
                     'id': producto.get('idProducto'),
                     'nombre': producto.get('nombreProducto'),
@@ -170,7 +170,7 @@ class FacturaCreateView(View):
         for inventario in inventarios:
             producto = next((p for p in productos if p.get('idProducto') == inventario.get('idProducto')), None)
             sucursal = next((s for s in sucursales if s.get('idSucursal') == inventario.get('idSucursal')), None)
-            if producto and sucursal:
+            if producto is not None and sucursal is not None:
                 productos_data.append({
                     'id': producto.get('idProducto'),
                     'nombre': producto.get('nombreProducto'),

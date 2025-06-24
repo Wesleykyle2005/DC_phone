@@ -29,14 +29,19 @@ class InventarioListView(View):
                                 'id': sucursal_data.get('idSucursal'),
                                 'nombre': sucursal_data.get('nombreSucursal', 'N/A')
                             }
+                        producto_data = inv.get('producto')
+                        if producto_data is None:
+                            producto = {'id': None, 'nombre': 'Indefinido'}
+                        else:
+                            producto = {
+                                'id': producto_data.get('idProducto'),
+                                'nombre': producto_data.get('nombreProducto', 'N/A')
+                            }
                         inventario = {
                             'id': inv.get('idInventario'),
                             'cantidad': inv.get('cantidadInventario'),
                             'estado': inv.get('estadoInventario'),
-                            'producto': {
-                                'id': inv.get('producto', {}).get('idProducto'),
-                                'nombre': inv.get('producto', {}).get('nombreProducto', 'N/A')
-                            },
+                            'producto': producto,
                             'sucursal': sucursal
                         }
                         inventarios.append(inventario)
