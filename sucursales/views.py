@@ -105,7 +105,7 @@ class SucursalCreateView(View):
                 "estadoSucursal": True
             }
             response = requests.post(url, json=payload, timeout=60)
-            if response.status_code in (200, 201):
+            if response.status_code in (200, 201, 204):
                 messages.success(request, f'Sucursal "{nombre}" creada exitosamente.')
             else:
                 messages.error(request, f'Error al crear sucursal: {response.status_code}')

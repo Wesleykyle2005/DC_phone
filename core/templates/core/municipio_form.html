@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}
+{% if municipio %}Editar Municipio{% else %}Nuevo Municipio{% endif %} - DC_phone
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title mb-0">
+                        {% if municipio %}
+                        <i class="fas fa-edit me-2"></i>Editar Municipio
+                        {% else %}
+                        <i class="fas fa-plus me-2"></i>Nuevo Municipio
+                        {% endif %}
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label for="codigo_municipio" class="form-label">Código del Municipio *</label>
+                            <input type="text" class="form-control" id="codigo_municipio" name="codigo_municipio" 
+                                   value="{% if municipio %}{{ municipio.idMunicipio }}{% endif %}" 
+                                   required {% if municipio %}readonly{% endif %}>
+                            <div class="form-text">
+                                {% if municipio %}
+                                El código no se puede modificar una vez creado.
+                                {% else %}
+                                Ingrese el código único del municipio.
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="nombre_municipio" class="form-label">Nombre del Municipio *</label>
+                            <input type="text" class="form-control" id="nombre_municipio" name="nombre_municipio" 
+                                   value="{% if municipio %}{{ municipio.nombreMunicipio }}{% endif %}" 
+                                   required>
+                            <div class="form-text">Ingrese el nombre completo del municipio.</div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'core:municipio-list' %}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i>
+                                {% if municipio %}Actualizar{% else %}Crear{% endif %}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

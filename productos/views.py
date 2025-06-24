@@ -13,14 +13,12 @@ class ProductoListView(View):
     def get(self, request):
         if not request.session.get('usuario'):
             return redirect('usuarios:login')
-        
         # Consumir la API para obtener productos
         url = "https://dc-phone-api.onrender.com/api/Producto"
         try:
             response = requests.get(url, timeout=60)
             if response.status_code == 200:
                 productos_api = response.json()
-                
                 # Mapear los datos de la API al formato que espera la plantilla
                 productos = []
                 for producto_api in productos_api:
@@ -39,7 +37,6 @@ class ProductoListView(View):
                             }
                         }
                         productos.append(producto)
-                
                 # Aplicar búsqueda si se proporciona
                 search_query = request.GET.get('search', '')
                 if search_query:
@@ -50,26 +47,22 @@ class ProductoListView(View):
                             search_query.lower() in p.get('categoria', {}).get('nombre', '').lower() or
                             search_query.lower() in p.get('marca', {}).get('nombre', '').lower())
                     ]
-                
                 # Cargar categorías y marcas para el modal de creación
                 categorias = []
                 marcas = []
                 try:
                     categorias_response = requests.get("https://dc-phone-api.onrender.com/api/Categoria", timeout=60)
                     marcas_response = requests.get("https://dc-phone-api.onrender.com/api/Marca", timeout=60)
-                    
                     if categorias_response.status_code == 200:
                         categorias_api = categorias_response.json()
                         categorias = [{'id': c.get('idCategoria'), 'nombre': c.get('nombreCategoria')} 
                                     for c in categorias_api if c.get('estadoCategoria', True)]
-                    
                     if marcas_response.status_code == 200:
                         marcas_api = marcas_response.json()
                         marcas = [{'id': m.get('idMarca'), 'nombre': m.get('nombreMarca')} 
                                 for m in marcas_api if m.get('estadoMarca', True)]
                 except Exception as e:
                     print(f"Error cargando categorías/marcas: {e}")
-                
                 return render(request, self.template_name, {
                     'productos': productos,
                     'search_query': search_query,
@@ -170,7 +163,7 @@ class ProductoCreateView(View):
             }
             
             response = requests.post(url, json=payload, timeout=60)
-            if response.status_code in (200, 201):
+            if response.status_code in (200, 201, 204):
                 messages.success(request, f'Producto "{nombre}" creado exitosamente.')
             else:
                 messages.error(request, f'Error al crear producto: {response.status_code}')

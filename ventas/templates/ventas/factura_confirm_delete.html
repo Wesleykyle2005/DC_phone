@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Eliminar Factura - DC_phone{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-danger text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Confirmar Eliminación
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-warning">
+                        <h5>¿Estás seguro de que deseas eliminar la factura #{{ factura.idFactura }}?</h5>
+                        <p class="mb-0">Esta acción no se puede deshacer.</p>
+                    </div>
+
+                    <!-- Información de la factura -->
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <h6 class="mb-0">Información de la Factura</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <p><strong>Número:</strong> {{ factura.idFactura }}</p>
+                                    <p><strong>Fecha:</strong> {{ factura.fechaFactura|date:"d/m/Y H:i" }}</p>
+                                    <p><strong>Total:</strong> ${{ factura.totalFactura }}</p>
+                                </div>
+                                <div class="col-md-6">
+                                    {% if factura.cliente %}
+                                        <p><strong>Cliente:</strong> {{ factura.cliente.persona.nombreCompletoPersona }}</p>
+                                    {% endif %}
+                                    {% if factura.empleado %}
+                                        <p><strong>Empleado:</strong> {{ factura.empleado.persona.nombreCompletoPersona }}</p>
+                                    {% endif %}
+                                    {% if factura.sucursal %}
+                                        <p><strong>Sucursal:</strong> {{ factura.sucursal.nombreSucursal }}</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'ventas:factura-list' %}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-danger">
+                                <i class="fas fa-trash me-2"></i>Eliminar Factura
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

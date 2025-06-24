@@ -18,5 +18,17 @@ urlpatterns = [
     path('roles/<int:pk>/editar/', views.RolUpdateView.as_view(), name='rol-update'),
     path('roles/<int:pk>/eliminar/', views.RolDeleteView.as_view(), name='rol-delete'),
 
+    # URLs para Marcas
+    path('marcas/', views.MarcaListView.as_view(), name='marca-list'),
+    path('marcas/crear/', views.MarcaCreateView.as_view(), name='marca-create'),
+    path('marcas/<int:pk>/editar/', views.MarcaUpdateView.as_view(), name='marca-update'),
+    path('marcas/<int:pk>/eliminar/', views.MarcaDeleteView.as_view(), name='marca-delete'),
+    
+    # URLs para Categorías
+    path('categorias/', views.CategoriaListView.as_view(), name='categoria-list'),
+    path('categorias/crear/', views.CategoriaCreateView.as_view(), name='categoria-create'),
+    path('categorias/<int:pk>/editar/', views.CategoriaUpdateView.as_view(), name='categoria-update'),
+    path('categorias/<int:pk>/eliminar/', views.CategoriaDeleteView.as_view(), name='categoria-delete'),
+
     path('otros/', views.OtrosListCreateView.as_view(), name='otros-list'),
 ]

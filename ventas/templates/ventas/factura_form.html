@@ -1,0 +1,237 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Nueva Factura - DC_phone{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2>Nueva Factura</h2>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{% url 'ventas:factura-list' %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Volver
+            </a>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">Información de la Factura</h5>
+        </div>
+        <div class="card-body">
+            <form method="post" id="facturaForm">
+                {% csrf_token %}
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label for="id_cliente" class="form-label">Cliente *</label>
+                            <select class="form-select" id="id_cliente" name="id_cliente" required>
+                                <option value="">Seleccione un cliente</option>
+                                {% for cliente in clientes %}
+                                <option value="{{ cliente.idCliente }}">{{ cliente.persona.nombreCompletoPersona }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label for="id_empleado" class="form-label">Empleado *</label>
+                            <select class="form-select" id="id_empleado" name="id_empleado" required>
+                                <option value="">Seleccione un empleado</option>
+                                {% for empleado in empleados %}
+                                <option value="{{ empleado.idEmpleado }}">{{ empleado.persona.nombreCompletoPersona }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label for="id_sucursal" class="form-label">Sucursal *</label>
+                            <select class="form-select" id="id_sucursal" name="id_sucursal" required>
+                                <option value="">Seleccione una sucursal</option>
+                                {% for sucursal in sucursales %}
+                                <option value="{{ sucursal.idSucursal }}">{{ sucursal.nombreSucursal }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="productosSection" style="display:none;">
+                    <hr>
+                    <h5>Productos</h5>
+                    <div class="table-responsive">
+                        <table class="table" id="productosTable">
+                            <thead>
+                                <tr>
+                                    <th>Producto</th>
+                                    <th>Precio</th>
+                                    <th>Cantidad</th>
+                                    <th>Subtotal</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            </tbody>
+                        </table>
+                    </div>
+                    <button type="button" class="btn btn-secondary mb-3" id="addRowBtn" style="display:none;">
+                        <i class="fas fa-plus me-2"></i>Añadir producto
+                    </button>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Total:</label>
+                        <span id="totalFactura" class="fs-4 text-primary">$0.00</span>
+                        <input type="hidden" name="total" id="totalInput" value="0.00">
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between">
+                    <a href="{% url 'ventas:factura-list' %}" class="btn btn-secondary">
+                        <i class="fas fa-times me-2"></i>Cancelar
+                    </a>
+                    <button type="submit" class="btn btn-primary" id="submitBtn" disabled>
+                        <i class="fas fa-save me-2"></i>Guardar Factura
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+    // productosData ahora debe estar agrupado por sucursal
+    const productosData = {};
+    {% for sucursal in sucursales %}
+        productosData[{{ sucursal.idSucursal }}] = [];
+    {% endfor %}
+    {% for p in productos_data %}
+        if (!productosData[{{ p.sucursal_id|default:'null' }}]) productosData[{{ p.sucursal_id|default:'null' }}] = [];
+        productosData[{{ p.sucursal_id|default:'null' }}].push({
+            id: {{ p.id }},
+            nombre: "{{ p.nombre }}",
+            precio: {{ p.precio }},
+            max_cantidad: {{ p.max_cantidad }}
+        });
+    {% endfor %}
+    
+    let sucursalSeleccionada = null;
+    
+    document.getElementById('id_sucursal').addEventListener('change', function() {
+        sucursalSeleccionada = this.value;
+        const productosSection = document.getElementById('productosSection');
+        const addRowBtn = document.getElementById('addRowBtn');
+        const tbody = document.querySelector('#productosTable tbody');
+        tbody.innerHTML = '';
+        document.getElementById('totalFactura').textContent = '$0.00';
+        document.getElementById('totalInput').value = '0.00';
+        document.getElementById('submitBtn').disabled = true;
+        
+        if (sucursalSeleccionada && productosData[sucursalSeleccionada] && productosData[sucursalSeleccionada].length > 0) {
+            productosSection.style.display = '';
+            addRowBtn.style.display = '';
+            addRowBtn.click(); // Añadir una fila por defecto
+        } else {
+            productosSection.style.display = 'none';
+            addRowBtn.style.display = 'none';
+        }
+    });
+    
+    function crearFilaProducto() {
+        const row = document.createElement('tr');
+        let select = '<select class="form-select producto-select" name="producto[]" required>';
+        select += '<option value="">Seleccione</option>';
+        if (sucursalSeleccionada && productosData[sucursalSeleccionada]) {
+            productosData[sucursalSeleccionada].forEach(p => {
+                select += `<option value="${p.id}" data-precio="${p.precio}" data-max="${p.max_cantidad}">${p.nombre}</option>`;
+            });
+        }
+        select += '</select>';
+        row.innerHTML = `
+            <td>${select}</td>
+            <td><input type="number" class="form-control precio-input" name="precio[]" readonly></td>
+            <td><input type="number" class="form-control cantidad-input" name="cantidad[]" min="1" required></td>
+            <td><input type="number" class="form-control subtotal-input" name="subtotal[]" readonly></td>
+            <td><button type="button" class="btn btn-danger btn-sm remove-row">&times;</button></td>
+        `;
+        return row;
+    }
+    
+    function actualizarTotal() {
+        let total = 0;
+        document.querySelectorAll('#productosTable .subtotal-input').forEach(input => {
+            total += parseFloat(input.value) || 0;
+        });
+        document.getElementById('totalFactura').textContent = `$${total.toFixed(2)}`;
+        document.getElementById('totalInput').value = total.toFixed(2);
+        
+        // Habilitar/deshabilitar botón de envío
+        const filas = document.querySelectorAll('#productosTable tbody tr');
+        const submitBtn = document.getElementById('submitBtn');
+        submitBtn.disabled = filas.length === 0 || total === 0;
+    }
+    
+    function actualizarFila(row) {
+        const select = row.querySelector('.producto-select');
+        const precioInput = row.querySelector('.precio-input');
+        const cantidadInput = row.querySelector('.cantidad-input');
+        const subtotalInput = row.querySelector('.subtotal-input');
+        const selected = select.options[select.selectedIndex];
+        const precio = selected.getAttribute('data-precio') || 0;
+        const max = selected.getAttribute('data-max') || 1;
+        
+        precioInput.value = precio;
+        cantidadInput.max = max;
+        if (parseInt(cantidadInput.value) > parseInt(max)) {
+            cantidadInput.value = max;
+        }
+        subtotalInput.value = (parseFloat(precio) * (parseInt(cantidadInput.value) || 0)).toFixed(2);
+        actualizarTotal();
+    }
+    
+    document.getElementById('addRowBtn').addEventListener('click', function() {
+        const tbody = document.querySelector('#productosTable tbody');
+        const row = crearFilaProducto();
+        tbody.appendChild(row);
+        
+        // Eventos
+        row.querySelector('.producto-select').addEventListener('change', function() {
+            actualizarFila(row);
+        });
+        row.querySelector('.cantidad-input').addEventListener('input', function() {
+            actualizarFila(row);
+        });
+        row.querySelector('.remove-row').addEventListener('click', function() {
+            row.remove();
+            actualizarTotal();
+        });
+    });
+    
+    // Validar que haya al menos un producto antes de enviar
+    document.getElementById('facturaForm').addEventListener('submit', function(e) {
+        const filas = document.querySelectorAll('#productosTable tbody tr');
+        if (filas.length === 0) {
+            alert('Debe añadir al menos un producto.');
+            e.preventDefault();
+            return;
+        }
+        
+        // Validar que todos los productos tengan cantidad
+        let valid = true;
+        filas.forEach(fila => {
+            const cantidad = fila.querySelector('.cantidad-input').value;
+            if (!cantidad || parseInt(cantidad) <= 0) {
+                valid = false;
+            }
+        });
+        
+        if (!valid) {
+            alert('Todos los productos deben tener una cantidad válida.');
+            e.preventDefault();
+        }
+    });
+</script>
+{% endblock %}
+{% endblock %} 

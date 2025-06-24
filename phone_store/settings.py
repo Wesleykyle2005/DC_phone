@@ -40,9 +40,9 @@ INSTALLED_APPS = [
     'inventario',
     'ventas',
     'core',
-    'django.contrib.admin',
-    'django.contrib.auth',
-    'django.contrib.contenttypes',
+    # 'django.contrib.admin',  # Eliminado porque no hay modelos
+    # 'django.contrib.auth',   # Eliminado porque no hay autenticación de Django
+    # 'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
@@ -54,7 +54,7 @@ MIDDLEWARE = [
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
-    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    # 'django.contrib.auth.middleware.AuthenticationMiddleware',  # Eliminado
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -70,7 +70,7 @@ TEMPLATES = [
             'context_processors': [
                 'django.template.context_processors.debug',
                 'django.template.context_processors.request',
-                'django.contrib.auth.context_processors.auth',  # Habilitado para el admin
+                # 'django.contrib.auth.context_processors.auth',  # Eliminado porque no se usa auth
                 'django.contrib.messages.context_processors.messages',
             ],
         },
@@ -83,33 +83,12 @@ WSGI_APPLICATION = 'phone_store.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/3.1/ref/settings/#databases
 
+# Configuración mínima para evitar errores de ImproperlyConfigured
 DATABASES = {
-    'default': dj_database_url.config(
-        default='sqlite:///' + str(BASE_DIR / 'db.sqlite3'),
-        conn_max_age=600
-    )
+    'default': {
+        'ENGINE': 'django.db.backends.dummy'
+    }
 }
-
-
-
-
-# Password validation
-# https://docs.djangoproject.com/en/3.1/ref/settings/#auth-password-validators
-
-AUTH_PASSWORD_VALIDATORS = [
-    {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
-    },
-]
 
 
 # Internationalization
@@ -143,6 +122,7 @@ LOGIN_URL = 'usuarios:login'
 LOGIN_REDIRECT_URL = None
 LOGOUT_REDIRECT_URL = 'usuarios:login'
 
+# Eliminar configuración de usuario personalizado
 # AUTH_USER_MODEL = 'usuarios.Usuario'  # Comentado porque usamos API externa
 
 # Configuración de seguridad para producción
@@ -155,3 +135,6 @@ if not DEBUG:
     SECURE_SSL_REDIRECT = True
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
+
+# Usar sesiones basadas en cookies firmadas para evitar dependencia de base de datos
+SESSION_ENGINE = 'django.contrib.sessions.backends.signed_cookies'

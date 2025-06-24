@@ -47,7 +47,6 @@ ALLOWED_HOSTS=.onrender.com,tu-dominio.com
 
 Una vez configurado:
 - Render construirá automáticamente tu aplicación
-- Ejecutará las migraciones de base de datos
 - Recolectará archivos estáticos
 - Iniciará el servicio
 
@@ -58,12 +57,6 @@ Una vez configurado:
 3. **URL**: Tu aplicación estará disponible en `https://dc-phone-store.onrender.com`
 
 ### Solución de Problemas Comunes
-
-#### Error de Migraciones
-Si las migraciones fallan, ejecuta manualmente:
-```bash
-python manage.py migrate
-```
 
 #### Error de Archivos Estáticos
 Si los archivos estáticos no se cargan:
@@ -103,21 +96,21 @@ phone_store/
 ├── Dockerfile              # Configuración de Docker
 ├── render.yaml             # Configuración de Render
 ├── requirements.txt        # Dependencias de Python
-├── build.sh               # Script de build
-├── .dockerignore          # Archivos a ignorar en Docker
-├── manage.py              # Script de gestión de Django
-├── phone_store/           # Configuración principal de Django
-│   ├── settings.py        # Configuración de la aplicación
-│   ├── urls.py           # URLs principales
-│   └── wsgi.py           # Configuración WSGI
-├── static/                # Archivos estáticos
-├── templates/             # Plantillas HTML
-└── [apps]/               # Aplicaciones Django
+├── build.sh                # Script de build
+├── .dockerignore           # Archivos a ignorar en Docker
+├── manage.py               # Script de gestión de Django
+├── phone_store/            # Configuración principal de Django
+│   ├── settings.py         # Configuración de la aplicación
+│   ├── urls.py             # URLs principales
+│   └── wsgi.py             # Configuración WSGI
+├── static/                 # Archivos estáticos
+├── templates/              # Plantillas HTML
+└── [apps]/                 # Aplicaciones Django
 ```
 
 ### Notas Importantes
 
-1. **Base de Datos**: La aplicación usa SQLite por defecto. Para producción, considera usar PostgreSQL.
+1. **Base de Datos**: La aplicación NO requiere base de datos local ni migraciones. Todo el acceso a datos es vía API externa.
 2. **Archivos Estáticos**: WhiteNoise se encarga de servir archivos estáticos en producción.
 3. **Seguridad**: Las configuraciones de seguridad se activan automáticamente en producción.
 4. **API Externa**: La aplicación consume datos de `https://dc-phone-api.onrender.com`.

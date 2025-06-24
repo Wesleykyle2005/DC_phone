@@ -15,7 +15,7 @@ pip install -r requirements.txt
 
 # Ejecutar migraciones
 echo "🗄️ Ejecutando migraciones..."
-python manage.py migrate
+# python manage.py migrate  # Eliminado porque no hay base de datos ni migraciones
 
 # Recolectar archivos estáticos
 echo "📁 Recolectando archivos estáticos..."

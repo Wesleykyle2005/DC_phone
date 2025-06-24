@@ -1,0 +1,114 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Detalle de Factura - DC_phone{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2>Detalle de Factura #{{ factura.idFactura }}</h2>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{% url 'ventas:factura-imprimir' factura.idFactura %}" class="btn btn-secondary">
+                <i class="fas fa-print me-2"></i>Imprimir PDF
+            </a>
+            <a href="{% url 'ventas:factura-list' %}" class="btn btn-primary">
+                <i class="fas fa-arrow-left me-2"></i>Volver
+            </a>
+        </div>
+    </div>
+
+    <!-- Información de la factura -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Información de la Factura</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <p><strong>Número de Factura:</strong> {{ factura.idFactura }}</p>
+                    <p><strong>Fecha:</strong> 
+                        {% if factura.fechaFactura %}
+                            {{ factura.fechaFactura|slice:":10" }} {{ factura.fechaFactura|slice:"11:16" }}
+                        {% else %}
+                            Sin fecha
+                        {% endif %}
+                    </p>
+                    <p><strong>Total:</strong> ${{ factura.totalFactura }}</p>
+                    <p><strong>Estado:</strong> 
+                        {% if factura.estadoFactura %}
+                            <span class="badge bg-success">Activa</span>
+                        {% else %}
+                            <span class="badge bg-danger">Inactiva</span>
+                        {% endif %}
+                    </p>
+                </div>
+                <div class="col-md-6">
+                    {% if factura.cliente %}
+                        <p><strong>Cliente:</strong> {{ factura.cliente.persona.nombreCompletoPersona }}</p>
+                        <p><strong>DNI Cliente:</strong> {{ factura.cliente.persona.dniPersona }}</p>
+                        <p><strong>Teléfono Cliente:</strong> {{ factura.cliente.persona.telefonoPersona }}</p>
+                    {% endif %}
+                    {% if factura.empleado %}
+                        <p><strong>Empleado:</strong> {{ factura.empleado.persona.nombreCompletoPersona }}</p>
+                    {% endif %}
+                    {% if factura.sucursal %}
+                        <p><strong>Sucursal:</strong> {{ factura.sucursal.nombreSucursal }}</p>
+                        <p><strong>Dirección:</strong> {{ factura.sucursal.direccionSucursal }}</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detalles de productos -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">Productos de la Factura</h5>
+        </div>
+        <div class="card-body">
+            {% if detalles %}
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Producto</th>
+                                <th>Cantidad</th>
+                                <th>Precio Unitario</th>
+                                <th>Subtotal</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for detalle in detalles %}
+                            <tr>
+                                <td>
+                                    {% if detalle.producto %}
+                                        {{ detalle.producto.nombreProducto }}
+                                    {% else %}
+                                        Producto no encontrado
+                                    {% endif %}
+                                </td>
+                                <td>{{ detalle.cantidadDetalle }}</td>
+                                <td>${{ detalle.precioUnitarioDetalle }}</td>
+                                <td>${{ detalle.subtotalDetalle }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot>
+                            <tr class="table-dark">
+                                <td colspan="3" class="text-end"><strong>Total:</strong></td>
+                                <td><strong>${{ factura.totalFactura }}</strong></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            {% else %}
+                <div class="alert alert-info">
+                    No hay detalles de productos para esta factura.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %} 

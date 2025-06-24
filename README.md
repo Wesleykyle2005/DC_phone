@@ -152,16 +152,11 @@
    ```
    pip install django pillow reportlab
    ```
-2. Realiza migraciones:
-   ```
-   python manage.py makemigrations
-   python manage.py migrate
-   ```
-3. Crea un superusuario:
+2. Crea un superusuario:
    ```
    python manage.py createsuperuser
    ```
-4. Ejecuta el servidor:
+3. Ejecuta el servidor:
    ```
    python manage.py runserver
    ```

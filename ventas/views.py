@@ -2,21 +2,47 @@ from django.shortcuts import render, redirect
 from django.views import View
 from django.urls import reverse_lazy
 from django.contrib import messages
-from django.db.models import Q
-from .models import Factura, DetalleFactura
-from personas.models import Cliente, Empleado
-from sucursales.models import Sucursal
-from productos.models import Producto
-from inventario.models import Inventario
+from django.http import HttpResponse
+from django.conf import settings
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
-from reportlab.lib.units import inch
-from django.conf import settings
-import os
 from reportlab.lib.utils import ImageReader
 from PIL import Image
+import requests
+import os
+from datetime import datetime
 
-# Create your views here.
+# Configuración de la API
+API_BASE_URL = 'https://dc-phone-api.onrender.com/api'
+
+def get_api_data(endpoint, params=None):
+    """Función helper para obtener datos de la API"""
+    try:
+        response = requests.get(f"{API_BASE_URL}/{endpoint}", params=params)
+        if response.status_code == 200:
+            return response.json()
+        return []
+    except Exception as e:
+        print(f"Error obteniendo datos de {endpoint}: {e}")
+        return []
+
+def post_api_data(endpoint, data):
+    """Función helper para enviar datos a la API"""
+    try:
+        response = requests.post(f"{API_BASE_URL}/{endpoint}", json=data)
+        return response.status_code in (200, 201, 204)
+    except Exception as e:
+        print(f"Error enviando datos a {endpoint}: {e}")
+        return False
+
+def delete_api_data(endpoint):
+    """Función helper para eliminar datos de la API"""
+    try:
+        response = requests.delete(f"{API_BASE_URL}/{endpoint}")
+        return response.status_code == 200 or response.status_code == 204
+    except Exception as e:
+        print(f"Error eliminando datos de {endpoint}: {e}")
+        return False
 
 # Vistas para Facturas
 class FacturaListView(View):
@@ -25,9 +51,97 @@ class FacturaListView(View):
     def get(self, request):
         if not request.session.get('usuario'):
             return redirect('usuarios:login')
-        # Aquí deberías consumir la API para obtener facturas
-        facturas = []
-        return render(request, self.template_name, {'facturas': facturas})
+        
+        # Obtener facturas de la API
+        facturas = get_api_data('Factura')
+        
+        # Aplicar filtros de búsqueda
+        search = request.GET.get('search', '')
+        search_type = request.GET.get('search_type', 'cliente')
+        
+        if search:
+            # Filtrar facturas según el tipo de búsqueda
+            filtered_facturas = []
+            for factura in facturas:
+                if factura.get('estadoFactura', True):  # Solo facturas activas
+                    if search_type == 'cliente' and factura.get('cliente'):
+                        if search.lower() in factura['cliente'].get('persona', {}).get('nombreCompletoPersona', '').lower():
+                            filtered_facturas.append(factura)
+                    elif search_type == 'empleado' and factura.get('empleado'):
+                        if search.lower() in factura['empleado'].get('persona', {}).get('nombreCompletoPersona', '').lower():
+                            filtered_facturas.append(factura)
+                    elif search_type == 'sucursal' and factura.get('sucursal'):
+                        if search.lower() in factura['sucursal'].get('nombreSucursal', '').lower():
+                            filtered_facturas.append(factura)
+            facturas = filtered_facturas
+        else:
+            # Solo mostrar facturas activas
+            facturas = [f for f in facturas if f.get('estadoFactura', True)]
+        
+        # Obtener datos para el formulario de nueva factura
+        clientes = get_api_data('Cliente')
+        empleados = get_api_data('Empleado')
+        sucursales = get_api_data('Sucursal')
+        productos = get_api_data('Producto')
+        inventarios = get_api_data('Inventario')
+        
+        # Filtrar solo elementos activos
+        clientes = [c for c in clientes if c.get('estadoCliente', True)]
+        empleados = [e for e in empleados if e.get('estadoEmpleado', True)]
+        sucursales = [s for s in sucursales if s.get('estadoSucursal', True)]
+        productos = [p for p in productos if p.get('estadoProducto', True)]
+        inventarios = [i for i in inventarios if i.get('estadoInventario', True)]
+        
+        # Preparar datos de productos por sucursal para el JavaScript
+        productos_data = []
+        for inventario in inventarios:
+            producto = next((p for p in productos if p.get('idProducto') == inventario.get('idProducto')), None)
+            sucursal = next((s for s in sucursales if s.get('idSucursal') == inventario.get('idSucursal')), None)
+            if producto and sucursal:
+                productos_data.append({
+                    'id': producto.get('idProducto'),
+                    'nombre': producto.get('nombreProducto'),
+                    'precio': float(producto.get('precioProducto', 0)),
+                    'max_cantidad': inventario.get('cantidadInventario', 0),
+                    'sucursal_id': sucursal.get('idSucursal')
+                })
+        
+        # Obtener todos los detalles de factura
+        detalles_api = get_api_data('DetalleFactura')
+        detalles_por_factura = {}
+        for detalle in detalles_api:
+            id_factura = detalle.get('idFactura')
+            if isinstance(id_factura, dict):
+                id_factura = id_factura.get('idFactura')
+            if id_factura:
+                detalles_por_factura.setdefault(id_factura, []).append(detalle)
+
+        # Enriquecer facturas con nombre de persona y detalles
+        for factura in facturas:
+            # Cliente
+            cliente = factura.get('cliente')
+            if cliente and not cliente.get('persona') and cliente.get('idPersona'):
+                persona = get_api_data(f'Persona/{cliente.get("idPersona")}')
+                if persona:
+                    cliente['persona'] = persona
+            # Empleado
+            empleado = factura.get('empleado')
+            if empleado and not empleado.get('persona') and empleado.get('idPersona'):
+                persona = get_api_data(f'Persona/{empleado.get("idPersona")}')
+                if persona:
+                    empleado['persona'] = persona
+            # Detalles de factura
+            factura['detallesFactura'] = detalles_por_factura.get(factura.get('idFactura'), [])
+        
+        context = {
+            'facturas': facturas,
+            'clientes': clientes,
+            'empleados': empleados,
+            'sucursales': sucursales,
+            'productos_data': productos_data,
+        }
+        
+        return render(request, self.template_name, context)
 
 class FacturaCreateView(View):
     template_name = 'ventas/factura_form.html'
@@ -36,11 +150,99 @@ class FacturaCreateView(View):
     def get(self, request):
         if not request.session.get('usuario'):
             return redirect('usuarios:login')
-        return render(request, self.template_name)
+        
+        # Obtener datos para el formulario
+        clientes = get_api_data('Cliente')
+        empleados = get_api_data('Empleado')
+        sucursales = get_api_data('Sucursal')
+        productos = get_api_data('Producto')
+        inventarios = get_api_data('Inventario')
+        
+        # Filtrar solo elementos activos
+        clientes = [c for c in clientes if c.get('estadoCliente', True)]
+        empleados = [e for e in empleados if e.get('estadoEmpleado', True)]
+        sucursales = [s for s in sucursales if s.get('estadoSucursal', True)]
+        productos = [p for p in productos if p.get('estadoProducto', True)]
+        inventarios = [i for i in inventarios if i.get('estadoInventario', True)]
+        
+        # Preparar datos de productos por sucursal
+        productos_data = []
+        for inventario in inventarios:
+            producto = next((p for p in productos if p.get('idProducto') == inventario.get('idProducto')), None)
+            sucursal = next((s for s in sucursales if s.get('idSucursal') == inventario.get('idSucursal')), None)
+            if producto and sucursal:
+                productos_data.append({
+                    'id': producto.get('idProducto'),
+                    'nombre': producto.get('nombreProducto'),
+                    'precio': float(producto.get('precioProducto', 0)),
+                    'max_cantidad': inventario.get('cantidadInventario', 0),
+                    'sucursal_id': sucursal.get('idSucursal')
+                })
+        
+        context = {
+            'clientes': clientes,
+            'empleados': empleados,
+            'sucursales': sucursales,
+            'productos_data': productos_data,
+        }
+        
+        return render(request, self.template_name, context)
 
     def post(self, request):
-        # Aquí deberías consumir la API para crear factura
-        return redirect(self.success_url)
+        if not request.session.get('usuario'):
+            return redirect('usuarios:login')
+        
+        try:
+            # Obtener datos del formulario
+            id_cliente = request.POST.get('id_cliente')
+            id_empleado = request.POST.get('id_empleado')
+            id_sucursal = request.POST.get('id_sucursal')
+            total = request.POST.get('total', '0')
+            # Obtener productos del formulario
+            productos = request.POST.getlist('producto[]')
+            cantidades = request.POST.getlist('cantidad[]')
+            precios = request.POST.getlist('precio[]')
+            subtotales = request.POST.getlist('subtotal[]')
+            if not productos or not id_cliente or not id_empleado or not id_sucursal:
+                messages.error(request, 'Todos los campos son obligatorios.')
+                return redirect('ventas:factura-create')
+            # Crear la factura
+            factura_data = {
+                'idCliente': int(id_cliente),
+                'idEmpleado': int(id_empleado),
+                'idSucursal': int(id_sucursal),
+                'fechaFactura': datetime.now().isoformat(),
+                'totalFactura': float(total),
+                'estadoFactura': True
+            }
+            # Enviar factura a la API
+            factura_response = requests.post(f"{API_BASE_URL}/Factura", json=factura_data, timeout=60)
+            if factura_response.status_code in (200, 201):
+                messages.success(request, 'Factura creada exitosamente.')
+                # Obtener el ID de la factura creada de la respuesta
+                factura_creada = factura_response.json()
+                factura_id = factura_creada.get('idFactura')
+                if factura_id:
+                    # Crear detalles de factura
+                    for i, producto_id in enumerate(productos):
+                        if producto_id and cantidades[i] and precios[i]:
+                            detalle_data = {
+                                'idFactura': factura_id,
+                                'idProducto': int(producto_id),
+                                'cantidadDetalle': int(cantidades[i]),
+                                'precioUnitarioDetalle': float(precios[i]),
+                                'subtotalDetalle': float(subtotales[i])
+                            }
+                            # Crear detalle de factura
+                            post_api_data('DetalleFactura', detalle_data)
+                return redirect(self.success_url)
+            else:
+                messages.error(request, f'Error al crear la factura: {factura_response.status_code}')
+                return redirect('ventas:factura-create')
+        except Exception as e:
+            print(f"Error en creación de factura: {e}")
+            messages.error(request, 'Error interno del servidor.')
+            return redirect('ventas:factura-create')
 
 class FacturaDetailView(View):
     template_name = 'ventas/factura_detail.html'
@@ -48,9 +250,36 @@ class FacturaDetailView(View):
     def get(self, request, pk):
         if not request.session.get('usuario'):
             return redirect('usuarios:login')
-        # Aquí deberías consumir la API para obtener la factura
-        factura = {}
-        return render(request, self.template_name, {'factura': factura})
+        
+        # Obtener factura específica de la API
+        factura = get_api_data(f'Factura/{pk}')
+        if not factura:
+            messages.error(request, 'Factura no encontrada.')
+            return redirect('ventas:factura-list')
+        
+        # Enriquecer factura con datos de persona si no vienen anidados
+        # Cliente
+        cliente = factura.get('cliente')
+        if cliente and not cliente.get('persona') and cliente.get('idPersona'):
+            persona = get_api_data(f'Persona/{cliente.get("idPersona")}')
+            if persona:
+                cliente['persona'] = persona
+        
+        # Empleado
+        empleado = factura.get('empleado')
+        if empleado and not empleado.get('persona') and empleado.get('idPersona'):
+            persona = get_api_data(f'Persona/{empleado.get("idPersona")}')
+            if persona:
+                empleado['persona'] = persona
+        
+        # Usar los detalles que ya vienen anidados en la factura
+        detalles_factura = factura.get('detallesFactura', [])
+        
+        context = {
+            'factura': factura,
+            'detalles': detalles_factura,
+        }
+        return render(request, self.template_name, context)
 
 class FacturaDeleteView(View):
     template_name = 'ventas/factura_confirm_delete.html'
@@ -59,20 +288,49 @@ class FacturaDeleteView(View):
     def get(self, request, pk):
         if not request.session.get('usuario'):
             return redirect('usuarios:login')
-        return render(request, self.template_name)
+        
+        # Obtener factura para mostrar información
+        factura = get_api_data(f'Factura/{pk}')
+        
+        if not factura:
+            messages.error(request, 'Factura no encontrada.')
+            return redirect('ventas:factura-list')
+        
+        context = {'factura': factura}
+        return render(request, self.template_name, context)
 
     def post(self, request, pk):
-        # Aquí deberías consumir la API para eliminar factura
+        if not request.session.get('usuario'):
+            return redirect('usuarios:login')
+        
+        # Eliminar factura de la API
+        if delete_api_data(f'Factura/{pk}'):
+            messages.success(request, 'Factura eliminada exitosamente.')
+        else:
+            messages.error(request, 'Error al eliminar la factura.')
+        
         return redirect(self.success_url)
 
 class FacturaPDFView(View):
     def get(self, request, pk):
         if not request.session.get('usuario'):
             return redirect('usuarios:login')
-        factura = Factura.objects.select_related('id_cliente__persona', 'id_empleado__persona', 'id_sucursal').get(pk=pk)
-        detalles = DetalleFactura.objects.filter(id_factura=factura)
+        
+        # Obtener factura de la API
+        factura = get_api_data(f'Factura/{pk}')
+        
+        if not factura:
+            messages.error(request, 'Factura no encontrada.')
+            return redirect('ventas:factura-list')
+        
+        # Obtener detalles de la API
+        detalles_api = get_api_data('DetalleFactura')
+        detalles_factura = [d for d in detalles_api if (d.get('idFactura') == pk or (isinstance(d.get('idFactura'), dict) and d.get('idFactura', {}).get('idFactura') == pk))]
+        
+        # Crear respuesta PDF
         response = HttpResponse(content_type='application/pdf')
-        response['Content-Disposition'] = f'attachment; filename="factura_{factura.id_factura}.pdf"'
+        response['Content-Disposition'] = f'attachment; filename="factura_{factura.get("idFactura")}.pdf"'
+        
         p = canvas.Canvas(response, pagesize=letter)
         width, height = letter
 
@@ -80,36 +338,40 @@ class FacturaPDFView(View):
         logo_path = os.path.join(settings.STATICFILES_DIRS[0], 'img', 'DC_phone.png')
         logo_width = 100
         logo_height = 60
-        x_logo = width - logo_width - 60  # margen derecho de 60
-        y_logo = height - 30 - logo_height  # margen superior de 60
+        x_logo = width - logo_width - 60
+        y_logo = height - 30 - logo_height
+        
         try:
-            print(f"[PDF] Intentando cargar logo en: {logo_path}")
-            if not os.path.exists(logo_path):
-                print(f"[PDF] Archivo no encontrado: {logo_path}")
-            else:
-                print(f"[PDF] Archivo encontrado. Intentando abrir con PIL...")
+            if os.path.exists(logo_path):
                 img = Image.open(logo_path)
-                print(f"[PDF] Imagen abierta. Modo: {img.mode}, Tamaño: {img.size}")
                 if img.mode not in ("RGB", "RGBA"):
-                    print(f"[PDF] Convirtiendo imagen a RGBA...")
                     img = img.convert("RGBA")
-                print(f"[PDF] Insertando imagen en x={x_logo}, y={y_logo}, w={logo_width}, h={logo_height}")
                 p.drawImage(ImageReader(img), x_logo, y_logo, width=logo_width, height=logo_height, preserveAspectRatio=True, mask='auto')
-                print(f"[PDF] Imagen insertada correctamente.")
         except Exception as e:
-            print(f"[PDF] Error al insertar el logo: {e}")
+            print(f"Error al insertar el logo: {e}")
 
-        # Cambiar tipografía a Courier para estilo de factura antigua
+        # Encabezado
         p.setFont('Courier-Bold', 18)
         p.drawString((width - p.stringWidth('DC_phone', 'Courier-Bold', 18)) / 2, height - 60, "DC_phone")
         p.setFont('Courier', 10)
         p.drawString((width - p.stringWidth('Factura Electrónica', 'Courier', 10)) / 2, height - 80, "Factura Electrónica")
-        p.setFont('Courier', 10)
-        p.drawString(40, height - 110, f"Fecha: {factura.fecha.strftime('%d/%m/%Y %H:%M')}")
-        p.drawString(40, height - 125, f"Factura N°: {factura.id_factura}")
-        p.drawString(40, height - 150, f"Cliente: {factura.id_cliente.persona.nombre_completo}")
-        p.drawString(40, height - 165, f"Empleado: {factura.id_empleado.persona.nombre_completo}")
-        p.drawString(40, height - 180, f"Sucursal: {factura.id_sucursal.nombre}")
+        
+        # Información de la factura
+        fecha_factura = datetime.fromisoformat(factura.get('fechaFactura', '').replace('Z', '+00:00'))
+        p.drawString(40, height - 110, f"Fecha: {fecha_factura.strftime('%d/%m/%Y %H:%M')}")
+        p.drawString(40, height - 125, f"Factura N°: {factura.get('idFactura')}")
+        
+        # Información del cliente
+        if factura.get('cliente') and factura['cliente'].get('persona'):
+            p.drawString(40, height - 150, f"Cliente: {factura['cliente']['persona'].get('nombreCompletoPersona', '')}")
+        
+        # Información del empleado
+        if factura.get('empleado') and factura['empleado'].get('persona'):
+            p.drawString(40, height - 165, f"Empleado: {factura['empleado']['persona'].get('nombreCompletoPersona', '')}")
+        
+        # Información de la sucursal
+        if factura.get('sucursal'):
+            p.drawString(40, height - 180, f"Sucursal: {factura['sucursal'].get('nombreSucursal', '')}")
 
         # Tabla de productos
         p.setFont('Courier-Bold', 12)
@@ -118,22 +380,31 @@ class FacturaPDFView(View):
         p.drawString(320, height - 210, "Precio Unitario")
         p.drawString(430, height - 210, "Subtotal")
         p.line(40, height - 215, 540, height - 215)
+        
         p.setFont('Courier', 10)
         y = height - 230
-        for detalle in detalles:
-            p.drawString(40, y, detalle.id_producto.nombre)
-            p.drawString(250, y, str(detalle.cantidad))
-            p.drawString(320, y, f"${detalle.precio_unitario:.2f}")
-            p.drawString(430, y, f"${detalle.subtotal:.2f}")
+        
+        for detalle in detalles_factura:
+            producto = detalle.get('producto')
+            if not producto:
+                producto = get_api_data(f"Producto/{detalle.get('idProducto')}")
+            nombre_producto = producto.get('nombreProducto', '') if producto else 'Producto no encontrado'
+            cantidad = detalle.get('cantidadDetalle', 0)
+            precio_unitario = detalle.get('precioUnitarioDetalle', 0)
+            subtotal = detalle.get('subtotalDetalle', 0)
+            p.drawString(40, y, nombre_producto)
+            p.drawString(250, y, str(cantidad))
+            p.drawString(320, y, f"${precio_unitario:.2f}")
+            p.drawString(430, y, f"${subtotal:.2f}")
             p.line(40, y - 3, 540, y - 3)
             y -= 18
 
         # Total
         p.setFont('Courier-Bold', 12)
         p.drawString(320, y - 10, "Total:")
-        p.drawString(430, y - 10, f"${factura.total:.2f}")
+        p.drawString(430, y - 10, f"${factura.get('totalFactura', 0):.2f}")
 
         p.showPage()
-
         p.save()
+        
         return response

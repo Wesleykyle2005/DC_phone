@@ -112,7 +112,7 @@ class InventarioCreateView(View):
                 "estadoInventario": True
             }
             response = requests.post(url, json=payload, timeout=60)
-            if response.status_code in (200, 201):
+            if response.status_code in (200, 201, 204):
                 messages.success(request, 'Inventario creado exitosamente.')
             else:
                 messages.error(request, f'Error al crear inventario: {response.status_code}')

@@ -40,9 +40,9 @@ RUN adduser --disabled-password --gecos '' appuser
 RUN chown -R appuser:appuser /app
 USER appuser
 
-# Recolectar archivos estáticos y ejecutar migraciones
+# Recolectar archivos estáticos
 RUN python manage.py collectstatic --noinput || true
-RUN python manage.py migrate || true
+# RUN python manage.py migrate || true  # Eliminado porque no hay base de datos ni migraciones
 
 # Exponer el puerto
 EXPOSE 8000

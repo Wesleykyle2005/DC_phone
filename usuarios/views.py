@@ -72,39 +72,30 @@ class PersonaListCreateView(View):
     def get(self, request):
         if not request.session.get('usuario'):
             return redirect('usuarios:login')
-        
-        tipo_filtro = request.GET.get('tipo', 'cliente')
-        search = request.GET.get('search', '')
-        page = request.GET.get('page', 1)
-        
         try:
-            # Cargar municipios y sucursales para el modal
-            municipios = []
-            sucursales = []
-            
             municipios_response = requests.get("https://dc-phone-api.onrender.com/api/Municipio", timeout=60)
             sucursales_response = requests.get("https://dc-phone-api.onrender.com/api/Sucursal", timeout=60)
-            
+            municipios = []
+            sucursales = []
             if municipios_response.status_code == 200:
                 municipios_api = municipios_response.json()
                 municipios = [{'codigo_municipio': m.get('idMunicipio'), 'nombre_municipio': m.get('nombreMunicipio')} 
                             for m in municipios_api]
-            
             if sucursales_response.status_code == 200:
                 sucursales_api = sucursales_response.json()
                 sucursales = [{'id': s.get('idSucursal'), 'nombre': s.get('nombreSucursal')} 
                             for s in sucursales_api if s.get('estadoSucursal', True)]
-            
             # Cargar clientes o empleados según el filtro
             clientes_page = None
             empleados_page = None
-            
+            tipo_filtro = request.GET.get('tipo', 'cliente')
+            search = request.GET.get('search', '')
+            page = request.GET.get('page', 1)
             if tipo_filtro == 'empleado':
                 # Cargar empleados
                 empleados_response = requests.get("https://dc-phone-api.onrender.com/api/Empleado", timeout=60)
                 if empleados_response.status_code == 200:
                     empleados_api = empleados_response.json()
-                    
                     # Mapear empleados con sus datos de persona
                     empleados = []
                     for empleado_api in empleados_api:
@@ -114,7 +105,6 @@ class PersonaListCreateView(View):
                             persona_response = requests.get(f"https://dc-phone-api.onrender.com/api/Persona/{persona_id}", timeout=60)
                             if persona_response.status_code == 200:
                                 persona_data = persona_response.json()
-                                
                                 # Obtener datos de la sucursal
                                 sucursal_id = empleado_api.get('idSucursal')
                                 sucursal_nombre = 'N/A'
@@ -123,7 +113,6 @@ class PersonaListCreateView(View):
                                         if sucursal['id'] == sucursal_id:
                                             sucursal_nombre = sucursal['nombre']
                                             break
-                                
                                 # Obtener datos del municipio
                                 municipio_nombre = 'N/A'
                                 municipio_id = persona_data.get('idMunicipio')
@@ -132,7 +121,6 @@ class PersonaListCreateView(View):
                                         if municipio['codigo_municipio'] == municipio_id:
                                             municipio_nombre = municipio['nombre_municipio']
                                             break
-                                
                                 empleado = {
                                     'id': empleado_api.get('idEmpleado'),
                                     'persona': {
@@ -149,14 +137,12 @@ class PersonaListCreateView(View):
                                     'direccion': empleado_api.get('direccionEmpleado')
                                 }
                                 empleados.append(empleado)
-                    
                     # Aplicar búsqueda
                     if search:
                         empleados = [
                             e for e in empleados 
                             if search.lower() in e.get('persona', {}).get('nombre_completo', '').lower()
                         ]
-                    
                     # Simular paginación (en una implementación real, la API debería soportar paginación)
                     empleados_page = type('obj', (object,), {
                         'object_list': empleados,
@@ -173,7 +159,6 @@ class PersonaListCreateView(View):
                 clientes_response = requests.get("https://dc-phone-api.onrender.com/api/Cliente", timeout=60)
                 if clientes_response.status_code == 200:
                     clientes_api = clientes_response.json()
-                    
                     # Mapear clientes con sus datos de persona
                     clientes = []
                     for cliente_api in clientes_api:
@@ -183,7 +168,6 @@ class PersonaListCreateView(View):
                             persona_response = requests.get(f"https://dc-phone-api.onrender.com/api/Persona/{persona_id}", timeout=60)
                             if persona_response.status_code == 200:
                                 persona_data = persona_response.json()
-                                
                                 # Obtener datos del municipio
                                 municipio_nombre = 'N/A'
                                 municipio_id = persona_data.get('idMunicipio')
@@ -192,7 +176,6 @@ class PersonaListCreateView(View):
                                         if municipio['codigo_municipio'] == municipio_id:
                                             municipio_nombre = municipio['nombre_municipio']
                                             break
-                                
                                 cliente = {
                                     'id': cliente_api.get('idCliente'),
                                     'persona': {
@@ -205,14 +188,12 @@ class PersonaListCreateView(View):
                                     }
                                 }
                                 clientes.append(cliente)
-                    
                     # Aplicar búsqueda
                     if search:
                         clientes = [
                             c for c in clientes 
                             if search.lower() in c.get('persona', {}).get('nombre_completo', '').lower()
                         ]
-                    
                     # Simular paginación
                     clientes_page = type('obj', (object,), {
                         'object_list': clientes,
@@ -224,7 +205,6 @@ class PersonaListCreateView(View):
                         'previous_page_number': None,
                         'next_page_number': None
                     })()
-            
             return render(request, 'usuarios/persona_list.html', {
                 'clientes_page': clientes_page,
                 'empleados_page': empleados_page,
@@ -233,7 +213,6 @@ class PersonaListCreateView(View):
                 'tipo_filtro': tipo_filtro,
                 'search': search,
             })
-            
         except requests.Timeout:
             messages.error(request, 'Timeout: La API tardó demasiado en responder.')
             return render(request, 'usuarios/persona_list.html', {
@@ -241,8 +220,8 @@ class PersonaListCreateView(View):
                 'empleados_page': None,
                 'municipios': [],
                 'sucursales': [],
-                'tipo_filtro': tipo_filtro,
-                'search': search,
+                'tipo_filtro': request.GET.get('tipo', 'cliente'),
+                'search': request.GET.get('search', ''),
             })
         except Exception as e:
             messages.error(request, f'Error de conexión: {str(e)}')
@@ -251,14 +230,13 @@ class PersonaListCreateView(View):
                 'empleados_page': None,
                 'municipios': [],
                 'sucursales': [],
-                'tipo_filtro': tipo_filtro,
-                'search': search,
+                'tipo_filtro': request.GET.get('tipo', 'cliente'),
+                'search': request.GET.get('search', ''),
             })
 
     def post(self, request):
         if not request.session.get('usuario'):
             return redirect('usuarios:login')
-        
         try:
             dni = request.POST.get('dni')
             nombre_completo = request.POST.get('nombre_completo')
@@ -267,12 +245,10 @@ class PersonaListCreateView(View):
             tipo = request.POST.get('tipo')
             sucursal_id = request.POST.get('sucursal')
             direccion = request.POST.get('direccion')
-            
             # Validar campos obligatorios
             if not (dni and nombre_completo and municipio_id and tipo):
                 messages.error(request, 'Todos los campos obligatorios deben ser completados.')
                 return redirect('usuarios:persona-list')
-            
             # Crear persona primero
             persona_url = "https://dc-phone-api.onrender.com/api/Persona"
             persona_payload = {
@@ -282,22 +258,18 @@ class PersonaListCreateView(View):
                 "idMunicipio": municipio_id,
                 "estadoPersona": True
             }
-            
             persona_response = requests.post(persona_url, json=persona_payload, timeout=60)
-            if persona_response.status_code not in (200, 201):
+            if persona_response.status_code not in (200, 201, 204):
                 messages.error(request, f'Error al crear persona: {persona_response.status_code}')
                 return redirect('usuarios:persona-list')
-            
             # Obtener el ID de la persona creada
             persona_data = persona_response.json()
             persona_id = persona_data.get('idPersona')
-            
             if tipo == 'empleado':
                 # Validar campos específicos de empleado
                 if not (sucursal_id and direccion):
                     messages.error(request, 'Para empleados, sucursal y dirección son obligatorios.')
                     return redirect('usuarios:persona-list')
-                
                 # Crear empleado
                 empleado_url = "https://dc-phone-api.onrender.com/api/Empleado"
                 empleado_payload = {
@@ -305,9 +277,8 @@ class PersonaListCreateView(View):
                     "direccionEmpleado": direccion,
                     "idSucursal": int(sucursal_id)
                 }
-                
                 empleado_response = requests.post(empleado_url, json=empleado_payload, timeout=60)
-                if empleado_response.status_code in (200, 201):
+                if empleado_response.status_code in (200, 201, 204):
                     messages.success(request, f'Empleado "{nombre_completo}" creado exitosamente.')
                 else:
                     messages.error(request, f'Error al crear empleado: {empleado_response.status_code}')
@@ -317,20 +288,17 @@ class PersonaListCreateView(View):
                 cliente_payload = {
                     "idPersona": persona_id
                 }
-                
                 cliente_response = requests.post(cliente_url, json=cliente_payload, timeout=60)
-                if cliente_response.status_code in (200, 201):
+                if cliente_response.status_code in (200, 201, 204):
                     messages.success(request, f'Cliente "{nombre_completo}" creado exitosamente.')
                 else:
                     messages.error(request, f'Error al crear cliente: {cliente_response.status_code}')
-                    
         except requests.Timeout:
             messages.error(request, 'Timeout: La API tardó demasiado en responder.')
         except ValueError:
             messages.error(request, 'Error: Los datos proporcionados no son válidos.')
         except Exception as e:
             messages.error(request, f'Error al crear {tipo}: {str(e)}')
-        
         return redirect('usuarios:persona-list')
 
 class PersonaDeleteView(View):
