@@ -23,18 +23,24 @@ class ProductoListView(View):
                 productos = []
                 for producto_api in productos_api:
                     if producto_api.get('estadoProducto', True):  # Solo productos activos
+                        categoria_data = producto_api.get('categoria')
+                        if categoria_data is None:
+                            categoria = {'nombre': 'Indefinido'}
+                        else:
+                            categoria = {'nombre': categoria_data.get('nombreCategoria', 'N/A')}
+                        marca_data = producto_api.get('marca')
+                        if marca_data is None:
+                            marca = {'nombre': 'Indefinido'}
+                        else:
+                            marca = {'nombre': marca_data.get('nombreMarca', 'N/A')}
                         producto = {
                             'id': producto_api.get('idProducto'),
                             'nombre': producto_api.get('nombreProducto'),
                             'descripcion': producto_api.get('descripcionProducto'),
                             'precio': producto_api.get('precioProducto'),
                             'estado': producto_api.get('estadoProducto'),
-                            'categoria': {
-                                'nombre': producto_api.get('categoria', {}).get('nombreCategoria', 'N/A')
-                            },
-                            'marca': {
-                                'nombre': producto_api.get('marca', {}).get('nombreMarca', 'N/A')
-                            }
+                            'categoria': categoria,
+                            'marca': marca
                         }
                         productos.append(producto)
                 # Aplicar búsqueda si se proporciona

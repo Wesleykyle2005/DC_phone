@@ -50,10 +50,8 @@
                         <td>{{ producto.nombre }}</td>
                         <td>{{ producto.descripcion }}</td>
                         <td>${{ producto.precio }}</td>
-                        <td>{{ producto.categoria.nombre }}</td>
-                        <td>{{ producto.marca.nombre }}
-                           
-                        </td>
+                        <td>{% if producto.categoria.nombre %}{{ producto.categoria.nombre }}{% else %}Indefinido{% endif %}</td>
+                        <td>{% if producto.marca.nombre %}{{ producto.marca.nombre }}{% else %}Indefinido{% endif %}</td>
                         <td>
                             <!-- Botón para abrir el modal de confirmación -->
                             <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#eliminarProductoModal{{ producto.id }}">

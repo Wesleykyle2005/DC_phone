@@ -21,6 +21,14 @@ class InventarioListView(View):
                 inventarios = []
                 for inv in inventarios_api:
                     if inv.get('estadoInventario', True):
+                        sucursal_data = inv.get('sucursal')
+                        if sucursal_data is None:
+                            sucursal = {'id': None, 'nombre': 'Indefinido'}
+                        else:
+                            sucursal = {
+                                'id': sucursal_data.get('idSucursal'),
+                                'nombre': sucursal_data.get('nombreSucursal', 'N/A')
+                            }
                         inventario = {
                             'id': inv.get('idInventario'),
                             'cantidad': inv.get('cantidadInventario'),
@@ -29,10 +37,7 @@ class InventarioListView(View):
                                 'id': inv.get('producto', {}).get('idProducto'),
                                 'nombre': inv.get('producto', {}).get('nombreProducto', 'N/A')
                             },
-                            'sucursal': {
-                                'id': inv.get('sucursal', {}).get('idSucursal'),
-                                'nombre': inv.get('sucursal', {}).get('nombreSucursal', 'N/A')
-                            }
+                            'sucursal': sucursal
                         }
                         inventarios.append(inventario)
                 # Búsqueda

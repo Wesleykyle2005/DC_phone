@@ -44,7 +44,7 @@
                     {% if inventario.estado == True %}
                     <tr>
                         <td>{{ inventario.producto.nombre }}</td>
-                        <td>{{ inventario.sucursal.nombre }}</td>
+                        <td>{% if inventario.sucursal.nombre %}{{ inventario.sucursal.nombre }}{% else %}Indefinido{% endif %}</td>
                         <td>{{ inventario.cantidad }}</td>
                         <td>
                             <!-- Botón para abrir el modal de confirmación -->
@@ -60,7 +60,7 @@
                                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
                                         </div>
                                         <div class="modal-body">
-                                            ¿Estás seguro de que deseas eliminar el inventario de "{{ inventario.producto.nombre }}" en sucursal "{{ inventario.sucursal.nombre }}"?
+                                            ¿Estás seguro de que deseas eliminar el inventario de "{{ inventario.producto.nombre }}" en sucursal "{% if inventario.sucursal.nombre %}{{ inventario.sucursal.nombre }}{% else %}Indefinido{% endif %}"?
                                         </div>
                                         <div class="modal-footer">
                                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
