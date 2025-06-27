@@ -5,6 +5,11 @@ from django.contrib import messages
 import requests
 from ventas.export_excel import export_to_excel
 from django.http import HttpResponse
+import openpyxl
+from openpyxl.utils import get_column_letter
+from openpyxl.styles import Font, PatternFill, Border, Side
+from openpyxl.chart import LineChart, BarChart, Reference
+from io import BytesIO
 
 # Create your views here.
 
@@ -512,10 +517,6 @@ class SucursalExportGraficasExcelView(View):
                     'promedio': datos['ventas'] / datos['facturas'] if datos['facturas'] > 0 else 0
                 })
             # Exportar a Excel: cada métrica en una hoja
-            import openpyxl
-            from openpyxl.utils import get_column_letter
-            from openpyxl.styles import Font, PatternFill, Border, Side
-            from io import BytesIO
             wb = openpyxl.Workbook()
             # Definir estilos azul
             header_font = Font(bold=True, color="FFFFFF")
@@ -532,21 +533,65 @@ class SucursalExportGraficasExcelView(View):
             ws1.append(['Mes', 'Total ventas (C$)'])
             for v in ventas_mensuales_ordenadas:
                 ws1.append([v['mes'], v['total']])
+            # Gráfico de barras para ventas mensuales
+            if ws1.max_row > 2:
+                chart1 = BarChart()
+                chart1.title = "Ventas Mensuales"
+                chart1.y_axis.title = "Total ventas (C$)"
+                chart1.x_axis.title = "Mes"
+                data = Reference(ws1, min_col=2, min_row=1, max_row=ws1.max_row)
+                cats = Reference(ws1, min_col=1, min_row=2, max_row=ws1.max_row)
+                chart1.add_data(data, titles_from_data=True)
+                chart1.set_categories(cats)
+                ws1.add_chart(chart1, "E2")
             # Hoja 2: Productos más vendidos
             ws2 = wb.create_sheet('Productos Más Vendidos')
             ws2.append(['Producto', 'Cantidad', 'Total vendido (C$)', 'Marca'])
             for p in productos_mas_vendidos:
                 ws2.append([p['producto'], p['cantidad'], p['total'], p['marca']])
+            # Gráfico de barras para productos más vendidos
+            if ws2.max_row > 2:
+                chart2 = BarChart()
+                chart2.title = "Productos Más Vendidos"
+                chart2.y_axis.title = "Cantidad"
+                chart2.x_axis.title = "Producto"
+                data = Reference(ws2, min_col=2, max_col=2, min_row=1, max_row=ws2.max_row)
+                cats = Reference(ws2, min_col=1, min_row=2, max_row=ws2.max_row)
+                chart2.add_data(data, titles_from_data=True)
+                chart2.set_categories(cats)
+                ws2.add_chart(chart2, "F2")
             # Hoja 3: Inventario actual
             ws3 = wb.create_sheet('Inventario Actual')
             ws3.append(['Producto', 'Stock', 'Marca', 'Categoría'])
             for i in inventario_actual:
                 ws3.append([i['producto'], i['stock'], i['marca'], i['categoria']])
+            # Gráfico de barras para inventario actual
+            if ws3.max_row > 2:
+                chart3 = BarChart()
+                chart3.title = "Inventario Actual"
+                chart3.y_axis.title = "Stock"
+                chart3.x_axis.title = "Producto"
+                data = Reference(ws3, min_col=2, max_col=2, min_row=1, max_row=ws3.max_row)
+                cats = Reference(ws3, min_col=1, min_row=2, max_row=ws3.max_row)
+                chart3.add_data(data, titles_from_data=True)
+                chart3.set_categories(cats)
+                ws3.add_chart(chart3, "F2")
             # Hoja 4: Rendimiento de empleados
             ws4 = wb.create_sheet('Rendimiento Empleados')
             ws4.append(['Empleado', 'Ventas totales (C$)', 'Facturas', 'Promedio por factura (C$)'])
             for e in rendimiento_empleados_lista:
                 ws4.append([e['empleado'], e['ventas'], e['facturas'], e['promedio']])
+            # Gráfico de barras para rendimiento de empleados (ventas totales)
+            if ws4.max_row > 2:
+                chart4 = BarChart()
+                chart4.title = "Rendimiento de Empleados"
+                chart4.y_axis.title = "Ventas totales (C$)"
+                chart4.x_axis.title = "Empleado"
+                data = Reference(ws4, min_col=2, max_col=2, min_row=1, max_row=ws4.max_row)
+                cats = Reference(ws4, min_col=1, min_row=2, max_row=ws4.max_row)
+                chart4.add_data(data, titles_from_data=True)
+                chart4.set_categories(cats)
+                ws4.add_chart(chart4, "F2")
             # Ajustar ancho de columnas y aplicar estilos
             for ws in [ws1, ws2, ws3, ws4]:
                 for col in ws.columns:
