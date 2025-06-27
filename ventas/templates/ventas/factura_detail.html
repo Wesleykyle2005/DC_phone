@@ -45,18 +45,9 @@
                     </p>
                 </div>
                 <div class="col-md-6">
-                    {% if factura.cliente %}
-                        <p><strong>Cliente:</strong> {{ factura.cliente.persona.nombreCompletoPersona }}</p>
-                        <p><strong>DNI Cliente:</strong> {{ factura.cliente.persona.dniPersona }}</p>
-                        <p><strong>Teléfono Cliente:</strong> {{ factura.cliente.persona.telefonoPersona }}</p>
-                    {% endif %}
-                    {% if factura.empleado %}
-                        <p><strong>Empleado:</strong> {{ factura.empleado.persona.nombreCompletoPersona }}</p>
-                    {% endif %}
-                    {% if factura.sucursal %}
-                        <p><strong>Sucursal:</strong> {{ factura.sucursal.nombreSucursal }}</p>
-                        <p><strong>Dirección:</strong> {{ factura.sucursal.direccionSucursal }}</p>
-                    {% endif %}
+                    <p><strong>Cliente:</strong> {{ factura.nombreCliente }}</p>
+                    <p><strong>Empleado:</strong> {{ factura.nombreEmpleado }}</p>
+                    <p><strong>Sucursal:</strong> {{ factura.nombreSucursal }}</p>
                 </div>
             </div>
         </div>
@@ -82,13 +73,7 @@
                         <tbody>
                             {% for detalle in detalles %}
                             <tr>
-                                <td>
-                                    {% if detalle.producto %}
-                                        {{ detalle.producto.nombreProducto }}
-                                    {% else %}
-                                        Producto no encontrado
-                                    {% endif %}
-                                </td>
+                                <td>{{ detalle.nombreProducto }}</td>
                                 <td>{{ detalle.cantidadDetalle }}</td>
                                 <td>${{ detalle.precioUnitarioDetalle }}</td>
                                 <td>${{ detalle.subtotalDetalle }}</td>

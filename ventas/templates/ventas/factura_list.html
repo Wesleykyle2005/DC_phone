@@ -51,27 +51,9 @@
                 {% for factura in facturas %}
                 <tr>
                     <td>{{ factura.idFactura }}</td>
-                    <td>
-                        {% if factura.cliente and factura.cliente.persona %}
-                            {{ factura.cliente.persona.nombreCompletoPersona }}
-                        {% else %}
-                            Sin datos
-                        {% endif %}
-                    </td>
-                    <td>
-                        {% if factura.empleado and factura.empleado.persona %}
-                            {{ factura.empleado.persona.nombreCompletoPersona }}
-                        {% else %}
-                            Sin datos
-                        {% endif %}
-                    </td>
-                    <td>
-                        {% if factura.sucursal %}
-                            {{ factura.sucursal.nombreSucursal }}
-                        {% else %}
-                            Sin datos
-                        {% endif %}
-                    </td>
+                    <td>{{ factura.nombreCliente }}</td>
+                    <td>{{ factura.nombreEmpleado }}</td>
+                    <td>{{ factura.nombreSucursal }}</td>
                     <td>
                         {% if factura.fechaFactura %}
                             {{ factura.fechaFactura|slice:":10" }} {{ factura.fechaFactura|slice:"11:16" }}

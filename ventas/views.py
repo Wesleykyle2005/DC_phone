@@ -54,6 +54,36 @@ class FacturaListView(View):
         
         # Obtener facturas de la API
         facturas = get_api_data('Factura')
+        # Obtener catálogos para mapear nombres
+        clientes = get_api_data('Cliente')
+        empleados = get_api_data('Empleado')
+        sucursales = get_api_data('Sucursal')
+        productos = get_api_data('Producto')
+        inventarios = get_api_data('Inventario')
+        # Crear diccionarios para acceso rápido
+        clientes_dict = {c['idCliente']: c for c in clientes}
+        empleados_dict = {e['idEmpleado']: e for e in empleados}
+        sucursales_dict = {s['idSucursal']: s for s in sucursales}
+        productos_dict = {p['idProducto']: p for p in productos}
+        # Enriquecer facturas con nombres
+        for factura in facturas:
+            # Cliente
+            id_cliente = factura.get('idCliente')
+            cliente = clientes_dict.get(id_cliente)
+            factura['nombreCliente'] = cliente['persona']['nombreCompletoPersona'] if cliente and cliente.get('persona') else 'Sin datos'
+            # Empleado
+            id_empleado = factura.get('idEmpleado')
+            empleado = empleados_dict.get(id_empleado)
+            factura['nombreEmpleado'] = empleado['persona']['nombreCompletoPersona'] if empleado and empleado.get('persona') else 'Sin datos'
+            # Sucursal
+            id_sucursal = factura.get('idSucursal')
+            sucursal = sucursales_dict.get(id_sucursal)
+            factura['nombreSucursal'] = sucursal['nombreSucursal'] if sucursal else 'Sin datos'
+            # Enriquecer detalles con nombre de producto
+            for detalle in factura.get('detallesFactura', []):
+                id_producto = detalle.get('idProducto')
+                producto = productos_dict.get(id_producto)
+                detalle['nombreProducto'] = producto['nombreProducto'] if producto else 'Producto no encontrado'
         
         # Aplicar filtros de búsqueda
         search = request.GET.get('search', '')
@@ -97,7 +127,7 @@ class FacturaListView(View):
         for inventario in inventarios:
             producto = next((p for p in productos if p.get('idProducto') == inventario.get('idProducto')), None)
             sucursal = next((s for s in sucursales if s.get('idSucursal') == inventario.get('idSucursal')), None)
-            if producto is not None and sucursal is not None:
+            if producto is not None and sucursal is not None and inventario.get('cantidadInventario', 0) > 0:
                 productos_data.append({
                     'id': producto.get('idProducto'),
                     'nombre': producto.get('nombreProducto'),
@@ -233,7 +263,6 @@ class FacturaCreateView(View):
                                 'precioUnitarioDetalle': float(precios[i]),
                                 'subtotalDetalle': float(subtotales[i])
                             }
-                            # Crear detalle de factura
                             post_api_data('DetalleFactura', detalle_data)
                 return redirect(self.success_url)
             else:
@@ -256,25 +285,32 @@ class FacturaDetailView(View):
         if not factura:
             messages.error(request, 'Factura no encontrada.')
             return redirect('ventas:factura-list')
-        
-        # Enriquecer factura con datos de persona si no vienen anidados
-        # Cliente
-        cliente = factura.get('cliente')
-        if cliente and not cliente.get('persona') and cliente.get('idPersona'):
-            persona = get_api_data(f'Persona/{cliente.get("idPersona")}')
-            if persona:
-                cliente['persona'] = persona
-        
-        # Empleado
-        empleado = factura.get('empleado')
-        if empleado and not empleado.get('persona') and empleado.get('idPersona'):
-            persona = get_api_data(f'Persona/{empleado.get("idPersona")}')
-            if persona:
-                empleado['persona'] = persona
-        
-        # Usar los detalles que ya vienen anidados en la factura
+        # Obtener catálogos
+        clientes = get_api_data('Cliente')
+        empleados = get_api_data('Empleado')
+        sucursales = get_api_data('Sucursal')
+        productos = get_api_data('Producto')
+        # Diccionarios para acceso rápido
+        clientes_dict = {c['idCliente']: c for c in clientes}
+        empleados_dict = {e['idEmpleado']: e for e in empleados}
+        sucursales_dict = {s['idSucursal']: s for s in sucursales}
+        productos_dict = {p['idProducto']: p for p in productos}
+        # Enriquecer factura
+        id_cliente = factura.get('idCliente')
+        cliente = clientes_dict.get(id_cliente)
+        factura['nombreCliente'] = cliente['persona']['nombreCompletoPersona'] if cliente and cliente.get('persona') else 'Sin datos'
+        id_empleado = factura.get('idEmpleado')
+        empleado = empleados_dict.get(id_empleado)
+        factura['nombreEmpleado'] = empleado['persona']['nombreCompletoPersona'] if empleado and empleado.get('persona') else 'Sin datos'
+        id_sucursal = factura.get('idSucursal')
+        sucursal = sucursales_dict.get(id_sucursal)
+        factura['nombreSucursal'] = sucursal['nombreSucursal'] if sucursal else 'Sin datos'
+        # Enriquecer detalles
         detalles_factura = factura.get('detallesFactura', [])
-        
+        for detalle in detalles_factura:
+            id_producto = detalle.get('idProducto')
+            producto = productos_dict.get(id_producto)
+            detalle['nombreProducto'] = producto['nombreProducto'] if producto else 'Producto no encontrado'
         context = {
             'factura': factura,
             'detalles': detalles_factura,
@@ -318,14 +354,36 @@ class FacturaPDFView(View):
         
         # Obtener factura de la API
         factura = get_api_data(f'Factura/{pk}')
-        
         if not factura:
             messages.error(request, 'Factura no encontrada.')
             return redirect('ventas:factura-list')
-        
-        # Obtener detalles de la API
+        # Obtener catálogos
+        clientes = get_api_data('Cliente')
+        empleados = get_api_data('Empleado')
+        sucursales = get_api_data('Sucursal')
+        productos = get_api_data('Producto')
+        # Diccionarios para acceso rápido
+        clientes_dict = {c['idCliente']: c for c in clientes}
+        empleados_dict = {e['idEmpleado']: e for e in empleados}
+        sucursales_dict = {s['idSucursal']: s for s in sucursales}
+        productos_dict = {p['idProducto']: p for p in productos}
+        # Enriquecer factura
+        id_cliente = factura.get('idCliente')
+        cliente = clientes_dict.get(id_cliente)
+        factura['nombreCliente'] = cliente['persona']['nombreCompletoPersona'] if cliente and cliente.get('persona') else 'Sin datos'
+        id_empleado = factura.get('idEmpleado')
+        empleado = empleados_dict.get(id_empleado)
+        factura['nombreEmpleado'] = empleado['persona']['nombreCompletoPersona'] if empleado and empleado.get('persona') else 'Sin datos'
+        id_sucursal = factura.get('idSucursal')
+        sucursal = sucursales_dict.get(id_sucursal)
+        factura['nombreSucursal'] = sucursal['nombreSucursal'] if sucursal else 'Sin datos'
+        # Obtener detalles de la API y enriquecer
         detalles_api = get_api_data('DetalleFactura')
         detalles_factura = [d for d in detalles_api if (d.get('idFactura') == pk or (isinstance(d.get('idFactura'), dict) and d.get('idFactura', {}).get('idFactura') == pk))]
+        for detalle in detalles_factura:
+            id_producto = detalle.get('idProducto')
+            producto = productos_dict.get(id_producto)
+            detalle['nombreProducto'] = producto['nombreProducto'] if producto else 'Producto no encontrado'
         
         # Crear respuesta PDF
         response = HttpResponse(content_type='application/pdf')
@@ -362,16 +420,13 @@ class FacturaPDFView(View):
         p.drawString(40, height - 125, f"Factura N°: {factura.get('idFactura')}")
         
         # Información del cliente
-        if factura.get('cliente') and factura['cliente'].get('persona'):
-            p.drawString(40, height - 150, f"Cliente: {factura['cliente']['persona'].get('nombreCompletoPersona', '')}")
+        p.drawString(40, height - 150, f"Cliente: {factura.get('nombreCliente', 'Sin datos')}")
         
         # Información del empleado
-        if factura.get('empleado') and factura['empleado'].get('persona'):
-            p.drawString(40, height - 165, f"Empleado: {factura['empleado']['persona'].get('nombreCompletoPersona', '')}")
+        p.drawString(40, height - 165, f"Empleado: {factura.get('nombreEmpleado', 'Sin datos')}")
         
         # Información de la sucursal
-        if factura.get('sucursal'):
-            p.drawString(40, height - 180, f"Sucursal: {factura['sucursal'].get('nombreSucursal', '')}")
+        p.drawString(40, height - 180, f"Sucursal: {factura.get('nombreSucursal', 'Sin datos')}")
 
         # Tabla de productos
         p.setFont('Courier-Bold', 12)
@@ -385,10 +440,7 @@ class FacturaPDFView(View):
         y = height - 230
         
         for detalle in detalles_factura:
-            producto = detalle.get('producto')
-            if not producto:
-                producto = get_api_data(f"Producto/{detalle.get('idProducto')}")
-            nombre_producto = producto.get('nombreProducto', '') if producto else 'Producto no encontrado'
+            nombre_producto = detalle.get('nombreProducto', 'Producto no encontrado')
             cantidad = detalle.get('cantidadDetalle', 0)
             precio_unitario = detalle.get('precioUnitarioDetalle', 0)
             subtotal = detalle.get('subtotalDetalle', 0)
