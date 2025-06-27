@@ -11,6 +11,7 @@ from PIL import Image
 import requests
 import os
 from datetime import datetime
+from core.views import put_api_data, get_api_data
 
 # Configuración de la API
 API_BASE_URL = 'https://dc-phone-api.onrender.com/api'
@@ -253,7 +254,8 @@ class FacturaCreateView(View):
                 factura_creada = factura_response.json()
                 factura_id = factura_creada.get('idFactura')
                 if factura_id:
-                    # Crear detalles de factura
+                    # Crear detalles de factura y actualizar inventario
+                    inventarios = get_api_data('Inventario')
                     for i, producto_id in enumerate(productos):
                         if producto_id and cantidades[i] and precios[i]:
                             detalle_data = {
@@ -264,6 +266,13 @@ class FacturaCreateView(View):
                                 'subtotalDetalle': float(subtotales[i])
                             }
                             post_api_data('DetalleFactura', detalle_data)
+                            # Actualizar inventario
+                            inventario = next((inv for inv in inventarios if inv['idProducto'] == int(producto_id) and inv['idSucursal'] == int(id_sucursal)), None)
+                            if inventario:
+                                nueva_cantidad = inventario['cantidadInventario'] - int(cantidades[i])
+                                inventario_data = inventario.copy()
+                                inventario_data['cantidadInventario'] = nueva_cantidad
+                                put_api_data(f"Inventario/{inventario['idInventario']}", inventario_data)
                 return redirect(self.success_url)
             else:
                 messages.error(request, f'Error al crear la factura: {factura_response.status_code}')
