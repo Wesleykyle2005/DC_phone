@@ -25,14 +25,20 @@ class ProductoListView(View):
                     if producto_api.get('estadoProducto', True):  # Solo productos activos
                         categoria_data = producto_api.get('categoria')
                         if categoria_data is None:
-                            categoria = {'nombre': 'Indefinido'}
+                            categoria = {'nombre': 'Indefinido', 'id': ''}
                         else:
-                            categoria = {'nombre': categoria_data.get('nombreCategoria', 'N/A')}
+                            categoria = {
+                                'nombre': categoria_data.get('nombreCategoria', 'N/A'),
+                                'id': categoria_data.get('idCategoria', '')
+                            }
                         marca_data = producto_api.get('marca')
                         if marca_data is None:
-                            marca = {'nombre': 'Indefinido'}
+                            marca = {'nombre': 'Indefinido', 'id': ''}
                         else:
-                            marca = {'nombre': marca_data.get('nombreMarca', 'N/A')}
+                            marca = {
+                                'nombre': marca_data.get('nombreMarca', 'N/A'),
+                                'id': marca_data.get('idMarca', '')
+                            }
                         producto = {
                             'id': producto_api.get('idProducto'),
                             'nombre': producto_api.get('nombreProducto'),
@@ -204,5 +210,52 @@ class ProductoDeleteView(View):
             messages.error(request, 'Timeout: La API tardó demasiado en responder.')
         except Exception as e:
             messages.error(request, f'Error al eliminar producto: {str(e)}')
+        
+        return redirect(self.success_url)
+
+class ProductoUpdateView(View):
+    success_url = reverse_lazy('productos:producto-list')
+
+    def post(self, request, pk):
+        if not request.session.get('usuario'):
+            return redirect('usuarios:login')
+        
+        try:
+            # Obtener datos del formulario
+            nombre = request.POST.get('nombre')
+            descripcion = request.POST.get('descripcion')
+            precio = request.POST.get('precio')
+            categoria_id = request.POST.get('categoria')
+            marca_id = request.POST.get('marca')
+            
+            # Validar datos
+            if not all([nombre, precio, categoria_id, marca_id]):
+                messages.error(request, 'Todos los campos obligatorios deben ser completados.')
+                return redirect('productos:producto-list')
+            
+            # Actualizar producto vía API
+            url = f"https://dc-phone-api.onrender.com/api/Producto/{pk}"
+            payload = {
+                "idProducto": pk,
+                "nombreProducto": nombre,
+                "descripcionProducto": descripcion or "",
+                "precioProducto": float(precio),
+                "idCategoria": int(categoria_id),
+                "idMarca": int(marca_id),
+                "estadoProducto": True
+            }
+            
+            response = requests.put(url, json=payload, timeout=60)
+            if response.status_code in (200, 201, 204):
+                messages.success(request, f'Producto "{nombre}" actualizado exitosamente.')
+            else:
+                messages.error(request, f'Error al actualizar producto: {response.status_code}')
+                
+        except requests.Timeout:
+            messages.error(request, 'Timeout: La API tardó demasiado en responder.')
+        except ValueError:
+            messages.error(request, 'Error: El precio debe ser un número válido.')
+        except Exception as e:
+            messages.error(request, f'Error al actualizar producto: {str(e)}')
         
         return redirect(self.success_url)

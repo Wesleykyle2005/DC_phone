@@ -211,14 +211,18 @@ class PersonaListCreateView(View):
                                 empleado = {
                                     'id': empleado_api.get('idEmpleado'),
                                     'persona': {
+                                        'id': persona_data.get('idPersona'),
                                         'dni': persona_data.get('dniPersona'),
                                         'nombre_completo': persona_data.get('nombreCompletoPersona'),
                                         'telefono': persona_data.get('telefonoPersona'),
+                                        'estado': persona_data.get('estadoPersona', True),
                                         'codigo_municipio': {
+                                            'codigo_municipio': municipio_id,
                                             'nombre_municipio': municipio_nombre
                                         }
                                     },
                                     'id_sucursal': {
+                                        'id': sucursal_id,
                                         'nombre': sucursal_nombre
                                     },
                                     'direccion': empleado_api.get('direccionEmpleado'),
@@ -267,10 +271,13 @@ class PersonaListCreateView(View):
                                 cliente = {
                                     'id': cliente_api.get('idCliente'),
                                     'persona': {
+                                        'id': persona_data.get('idPersona'),
                                         'dni': persona_data.get('dniPersona'),
                                         'nombre_completo': persona_data.get('nombreCompletoPersona'),
                                         'telefono': persona_data.get('telefonoPersona'),
+                                        'estado': persona_data.get('estadoPersona', True),
                                         'codigo_municipio': {
+                                            'codigo_municipio': municipio_id,
                                             'nombre_municipio': municipio_nombre
                                         }
                                     }
@@ -336,6 +343,117 @@ class PersonaListCreateView(View):
         if not request.session.get('usuario'):
             return redirect('usuarios:login')
         try:
+            accion = request.POST.get('accion')
+            if accion == 'editar_empleado':
+                # Edición de empleado
+                id_persona = request.POST.get('id_persona')
+                id_empleado = request.POST.get('id_empleado')
+                dni = request.POST.get('dni')
+                nombre_completo = request.POST.get('nombre_completo')
+                telefono = request.POST.get('telefono')
+                municipio_id = request.POST.get('municipio')
+                direccion = request.POST.get('direccion')
+                sucursal_id = request.POST.get('sucursal')
+                estado = request.POST.get('estado') == '1'
+                # Actualizar persona
+                persona_url = f"https://dc-phone-api.onrender.com/api/Persona/{id_persona}"
+                persona_payload = {
+                    "idPersona": int(id_persona),
+                    "dniPersona": dni,
+                    "nombreCompletoPersona": nombre_completo,
+                    "telefonoPersona": telefono or "",
+                    "idMunicipio": municipio_id,
+                    "estadoPersona": estado
+                }
+                persona_response = requests.put(persona_url, json=persona_payload, timeout=60)
+                if persona_response.status_code not in (200, 204):
+                    messages.error(request, f'Error al actualizar persona: {persona_response.status_code} - {persona_response.text}')
+                    return redirect('usuarios:persona-list')
+                # Actualizar empleado
+                empleado_url = f"https://dc-phone-api.onrender.com/api/Empleado/{id_empleado}"
+                empleado_payload = {
+                    "idEmpleado": int(id_empleado),
+                    "idPersona": int(id_persona),
+                    "direccionEmpleado": direccion,
+                    "idSucursal": int(sucursal_id)
+                }
+                empleado_response = requests.put(empleado_url, json=empleado_payload, timeout=60)
+                if empleado_response.status_code in (200, 204):
+                    messages.success(request, 'Empleado actualizado exitosamente.')
+                else:
+                    messages.error(request, f'Error al actualizar empleado: {empleado_response.status_code} - {empleado_response.text}')
+                return redirect('usuarios:persona-list')
+            elif accion == 'editar_cliente':
+                # Edición de cliente
+                id_persona = request.POST.get('id_persona')
+                id_cliente = request.POST.get('id_cliente')
+                dni = request.POST.get('dni')
+                nombre_completo = request.POST.get('nombre_completo')
+                telefono = request.POST.get('telefono')
+                municipio_id = request.POST.get('municipio')
+                estado = request.POST.get('estado') == '1'
+                # Actualizar persona
+                persona_url = f"https://dc-phone-api.onrender.com/api/Persona/{id_persona}"
+                persona_payload = {
+                    "idPersona": int(id_persona),
+                    "dniPersona": dni,
+                    "nombreCompletoPersona": nombre_completo,
+                    "telefonoPersona": telefono or "",
+                    "idMunicipio": municipio_id,
+                    "estadoPersona": estado
+                }
+                persona_response = requests.put(persona_url, json=persona_payload, timeout=60)
+                if persona_response.status_code not in (200, 204):
+                    messages.error(request, f'Error al actualizar persona: {persona_response.status_code} - {persona_response.text}')
+                    return redirect('usuarios:persona-list')
+                # Actualizar cliente
+                cliente_url = f"https://dc-phone-api.onrender.com/api/Cliente/{id_cliente}"
+                cliente_payload = {
+                    "idCliente": int(id_cliente),
+                    "idPersona": int(id_persona)
+                }
+                cliente_response = requests.put(cliente_url, json=cliente_payload, timeout=60)
+                if cliente_response.status_code in (200, 204):
+                    messages.success(request, 'Cliente actualizado exitosamente.')
+                else:
+                    messages.error(request, f'Error al actualizar cliente: {cliente_response.status_code} - {cliente_response.text}')
+                return redirect('usuarios:persona-list')
+            elif accion == 'editar_usuario':
+                # Edición de usuario
+                id_usuario = request.POST.get('id_usuario')
+                id_empleado = request.POST.get('id_empleado')
+                nombre_usuario = request.POST.get('nombre_usuario')
+                contrasena = request.POST.get('contrasena')
+                nombre = request.POST.get('nombre')
+                apellido = request.POST.get('apellido')
+                correo = request.POST.get('correo')
+                rol = request.POST.get('rol')
+                estado_usuario = request.POST.get('estado_usuario') == '1'
+                
+                # Construir payload para usuario
+                usuario_payload = {
+                    "idUsuario": int(id_usuario),
+                    "nombreUsuario": nombre_usuario,
+                    "contrasenaUsuario": contrasena,
+                    "nombre": nombre,
+                    "apellido": apellido,
+                    "correoElectronico": correo,
+                    "idEmpleado": int(id_empleado),
+                    "idRol": int(rol),
+                    "estadoUsuario": estado_usuario,
+                    "esActivo": True,
+                    "esPersonal": True,
+                    "esSuperUsuario": False
+                }
+                
+                # Actualizar usuario
+                usuario_url = f"https://dc-phone-api.onrender.com/api/Usuario/{id_usuario}"
+                usuario_response = requests.put(usuario_url, json=usuario_payload, timeout=60)
+                if usuario_response.status_code in (200, 204):
+                    messages.success(request, 'Usuario actualizado exitosamente.')
+                else:
+                    messages.error(request, f'Error al actualizar usuario: {usuario_response.status_code} - {usuario_response.text}')
+                return redirect('usuarios:persona-list')
             # Cargar municipios para validación
             municipios_response = requests.get("https://dc-phone-api.onrender.com/api/Municipio", timeout=60)
             municipios = []

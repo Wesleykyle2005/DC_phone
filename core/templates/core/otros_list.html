@@ -58,6 +58,11 @@
                             <td>{{ obj.codigo_municipio }}</td>
                             <td>{{ obj.nombre_municipio }}</td>
                             <td>
+                                <!-- Botón para editar -->
+                                <button type="button" class="btn btn-warning btn-sm me-1" data-bs-toggle="modal" data-bs-target="#editarModal{{ obj.codigo_municipio }}">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <!-- Botón para eliminar -->
                                 <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#eliminarModal{{ obj.codigo_municipio }}">
                                     <i class="fas fa-trash"></i>
                                 </button>
@@ -89,6 +94,11 @@
                             <td>{{ obj.id_rol }}</td>
                             <td>{{ obj.nombre_rol }}</td>
                             <td>
+                                <!-- Botón para editar -->
+                                <button type="button" class="btn btn-warning btn-sm me-1" data-bs-toggle="modal" data-bs-target="#editarModalRol{{ obj.id_rol }}">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <!-- Botón para eliminar -->
                                 <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#eliminarModalRol{{ obj.id_rol }}">
                                     <i class="fas fa-trash"></i>
                                 </button>
@@ -119,6 +129,11 @@
                             <td>{{ obj.id }}</td>
                             <td>{{ obj.nombre }}</td>
                             <td>
+                                <!-- Botón para editar -->
+                                <button type="button" class="btn btn-warning btn-sm me-1" data-bs-toggle="modal" data-bs-target="#editarModalMarca{{ obj.id }}">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <!-- Botón para eliminar -->
                                 <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#eliminarModalMarca{{ obj.id }}">
                                     <i class="fas fa-trash"></i>
                                 </button>
@@ -149,6 +164,11 @@
                             <td>{{ obj.id }}</td>
                             <td>{{ obj.nombre }}</td>
                             <td>
+                                <!-- Botón para editar -->
+                                <button type="button" class="btn btn-warning btn-sm me-1" data-bs-toggle="modal" data-bs-target="#editarModalCategoria{{ obj.id }}">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <!-- Botón para eliminar -->
                                 <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#eliminarModalCategoria{{ obj.id }}">
                                     <i class="fas fa-trash"></i>
                                 </button>
@@ -261,4 +281,125 @@
         </div>
     </div>
 </div>
+
+<!-- Modales de edición -->
+{% for obj in page_obj %}
+    {% if tipo == 'municipio' %}
+    <!-- Modal para editar municipio -->
+    <div class="modal fade" id="editarModal{{ obj.codigo_municipio }}" tabindex="-1" aria-labelledby="editarModalLabel{{ obj.codigo_municipio }}" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editarModalLabel{{ obj.codigo_municipio }}">Editar Municipio</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form method="post" action="">
+                    {% csrf_token %}
+                    <input type="hidden" name="tipo" value="municipio">
+                    <input type="hidden" name="accion" value="editar">
+                    <input type="hidden" name="editar_id" value="{{ obj.codigo_municipio }}">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="codigo{{ obj.codigo_municipio }}" class="form-label">Código</label>
+                            <input type="text" class="form-control" id="codigo{{ obj.codigo_municipio }}" name="codigo" value="{{ obj.codigo_municipio }}" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="nombre{{ obj.codigo_municipio }}" class="form-label">Nombre</label>
+                            <input type="text" class="form-control" id="nombre{{ obj.codigo_municipio }}" name="nombre" value="{{ obj.nombre_municipio }}" required>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-warning">Actualizar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% elif tipo == 'rol' %}
+    <!-- Modal para editar rol -->
+    <div class="modal fade" id="editarModalRol{{ obj.id_rol }}" tabindex="-1" aria-labelledby="editarModalLabelRol{{ obj.id_rol }}" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editarModalLabelRol{{ obj.id_rol }}">Editar Rol</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form method="post" action="">
+                    {% csrf_token %}
+                    <input type="hidden" name="tipo" value="rol">
+                    <input type="hidden" name="accion" value="editar">
+                    <input type="hidden" name="editar_id" value="{{ obj.id_rol }}">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="nombre{{ obj.id_rol }}" class="form-label">Nombre</label>
+                            <input type="text" class="form-control" id="nombre{{ obj.id_rol }}" name="nombre" value="{{ obj.nombre_rol }}" required>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-warning">Actualizar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% elif tipo == 'marca' %}
+    <!-- Modal para editar marca -->
+    <div class="modal fade" id="editarModalMarca{{ obj.id }}" tabindex="-1" aria-labelledby="editarModalLabelMarca{{ obj.id }}" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editarModalLabelMarca{{ obj.id }}">Editar Marca</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form method="post" action="">
+                    {% csrf_token %}
+                    <input type="hidden" name="tipo" value="marca">
+                    <input type="hidden" name="accion" value="editar">
+                    <input type="hidden" name="editar_id" value="{{ obj.id }}">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="nombre{{ obj.id }}" class="form-label">Nombre</label>
+                            <input type="text" class="form-control" id="nombre{{ obj.id }}" name="nombre" value="{{ obj.nombre }}" required>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-warning">Actualizar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% elif tipo == 'categoria' %}
+    <!-- Modal para editar categoría -->
+    <div class="modal fade" id="editarModalCategoria{{ obj.id }}" tabindex="-1" aria-labelledby="editarModalLabelCategoria{{ obj.id }}" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editarModalLabelCategoria{{ obj.id }}">Editar Categoría</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form method="post" action="">
+                    {% csrf_token %}
+                    <input type="hidden" name="tipo" value="categoria">
+                    <input type="hidden" name="accion" value="editar">
+                    <input type="hidden" name="editar_id" value="{{ obj.id }}">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="nombre{{ obj.id }}" class="form-label">Nombre</label>
+                            <input type="text" class="form-control" id="nombre{{ obj.id }}" name="nombre" value="{{ obj.nombre }}" required>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-warning">Actualizar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+{% endfor %}
 {% endblock %} 

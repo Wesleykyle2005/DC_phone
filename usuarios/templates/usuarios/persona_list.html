@@ -62,6 +62,10 @@
                         <td>
                             {% if empleado.usuario %}
                                 {{ empleado.usuario.nombreUsuario }}
+                                <!-- Botón editar usuario -->
+                                <button class="btn btn-info btn-sm ms-1" data-bs-toggle="modal" data-bs-target="#editarUsuarioModal{{ empleado.usuario.idUsuario }}">
+                                    <i class="fas fa-user-edit"></i>
+                                </button>
                             {% else %}
                                 <button class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#crearUsuarioModal" data-empleado-id="{{ empleado.id }}" data-empleado-nombre="{{ empleado.persona.nombre_completo }}">
                                     Crear usuario
@@ -76,8 +80,131 @@
                                     <i class="fas fa-trash"></i>
                                 </button>
                             </form>
+                            <!-- Botón editar -->
+                            <button type="button" class="btn btn-warning btn-sm ms-1" data-bs-toggle="modal" data-bs-target="#editarEmpleadoModal{{ empleado.id }}">
+                                <i class="fas fa-edit"></i>
+                            </button>
                         </td>
                     </tr>
+                    <!-- Modal editar empleado -->
+                    <div class="modal fade" id="editarEmpleadoModal{{ empleado.id }}" tabindex="-1" aria-labelledby="editarEmpleadoModalLabel{{ empleado.id }}" aria-hidden="true">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="editarEmpleadoModalLabel{{ empleado.id }}">Editar Empleado</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                                </div>
+                                <form method="post" action="">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="accion" value="editar_empleado">
+                                    <input type="hidden" name="id_empleado" value="{{ empleado.id }}">
+                                    <input type="hidden" name="id_persona" value="{{ empleado.persona.id }}">
+                                    <div class="modal-body">
+                                        <div class="mb-3">
+                                            <label for="dni{{ empleado.id }}" class="form-label">DNI</label>
+                                            <input type="text" class="form-control" id="dni{{ empleado.id }}" name="dni" value="{{ empleado.persona.dni }}" required>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="nombre_completo{{ empleado.id }}" class="form-label">Nombre completo</label>
+                                            <input type="text" class="form-control" id="nombre_completo{{ empleado.id }}" name="nombre_completo" value="{{ empleado.persona.nombre_completo }}" required>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="telefono{{ empleado.id }}" class="form-label">Teléfono</label>
+                                            <input type="text" class="form-control" id="telefono{{ empleado.id }}" name="telefono" value="{{ empleado.persona.telefono }}">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="municipio{{ empleado.id }}" class="form-label">Municipio</label>
+                                            <select class="form-select" id="municipio{{ empleado.id }}" name="municipio" required>
+                                                <option value="">Seleccione un municipio</option>
+                                                {% for municipio in municipios %}
+                                                    <option value="{{ municipio.codigo_municipio }}" {% if empleado.persona.codigo_municipio.codigo_municipio == municipio.codigo_municipio %}selected{% endif %}>{{ municipio.nombre_municipio }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="direccion{{ empleado.id }}" class="form-label">Dirección</label>
+                                            <input type="text" class="form-control" id="direccion{{ empleado.id }}" name="direccion" value="{{ empleado.direccion }}">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="sucursal{{ empleado.id }}" class="form-label">Sucursal</label>
+                                            <select class="form-select" id="sucursal{{ empleado.id }}" name="sucursal" required>
+                                                <option value="">Seleccione una sucursal</option>
+                                                {% for sucursal in sucursales %}
+                                                    <option value="{{ sucursal.id }}" {% if empleado.id_sucursal.id == sucursal.id %}selected{% endif %}>{{ sucursal.nombre }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                        <div class="form-check mb-3">
+                                            <input class="form-check-input" type="checkbox" id="estado{{ empleado.id }}" name="estado" value="1" {% if empleado.persona.estado %}checked{% endif %}>
+                                            <label class="form-check-label" for="estado{{ empleado.id }}">Activo</label>
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                        <button type="submit" class="btn btn-warning">Actualizar</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    {% if empleado.usuario %}
+                    <!-- Modal editar usuario -->
+                    <div class="modal fade" id="editarUsuarioModal{{ empleado.usuario.idUsuario }}" tabindex="-1" aria-labelledby="editarUsuarioModalLabel{{ empleado.usuario.idUsuario }}" aria-hidden="true">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="editarUsuarioModalLabel{{ empleado.usuario.idUsuario }}">Editar Usuario</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                                </div>
+                                <form method="post" action="">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="accion" value="editar_usuario">
+                                    <input type="hidden" name="id_usuario" value="{{ empleado.usuario.idUsuario }}">
+                                    <input type="hidden" name="id_empleado" value="{{ empleado.id }}">
+                                    <div class="modal-body">
+                                        <div class="mb-3">
+                                            <label for="nombre_usuario{{ empleado.usuario.idUsuario }}" class="form-label">Nombre de usuario</label>
+                                            <input type="text" class="form-control" id="nombre_usuario{{ empleado.usuario.idUsuario }}" name="nombre_usuario" value="{{ empleado.usuario.nombreUsuario }}" required>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="contrasena{{ empleado.usuario.idUsuario }}" class="form-label">Contraseña</label>
+                                            <input type="password" class="form-control" id="contrasena{{ empleado.usuario.idUsuario }}" name="contrasena" placeholder="Ingrese la contraseña actual o una nueva" required>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="nombre{{ empleado.usuario.idUsuario }}" class="form-label">Nombre</label>
+                                            <input type="text" class="form-control" id="nombre{{ empleado.usuario.idUsuario }}" name="nombre" value="{{ empleado.usuario.nombre }}" required>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="apellido{{ empleado.usuario.idUsuario }}" class="form-label">Apellido</label>
+                                            <input type="text" class="form-control" id="apellido{{ empleado.usuario.idUsuario }}" name="apellido" value="{{ empleado.usuario.apellido }}" required>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="correo{{ empleado.usuario.idUsuario }}" class="form-label">Correo electrónico</label>
+                                            <input type="email" class="form-control" id="correo{{ empleado.usuario.idUsuario }}" name="correo" value="{{ empleado.usuario.correoElectronico }}" required>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="rol{{ empleado.usuario.idUsuario }}" class="form-label">Rol</label>
+                                            <select class="form-select" id="rol{{ empleado.usuario.idUsuario }}" name="rol" required>
+                                                <option value="">Seleccione un rol</option>
+                                                {% for rol in roles %}
+                                                    <option value="{{ rol.id }}" {% if empleado.usuario.idRol == rol.id %}selected{% endif %}>{{ rol.nombre }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                        <div class="form-check mb-3">
+                                            <input class="form-check-input" type="checkbox" id="estado_usuario{{ empleado.usuario.idUsuario }}" name="estado_usuario" value="1" {% if empleado.usuario.estadoUsuario %}checked{% endif %}>
+                                            <label class="form-check-label" for="estado_usuario{{ empleado.usuario.idUsuario }}">Usuario activo</label>
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                        <button type="submit" class="btn btn-info">Actualizar Usuario</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
                     {% empty %}
                     <tr><td colspan="8" class="text-center">No hay empleados disponibles.</td></tr>
                     {% endfor %}
@@ -97,8 +224,60 @@
                                     <i class="fas fa-trash"></i>
                                 </button>
                             </form>
+                            <!-- Botón editar -->
+                            <button type="button" class="btn btn-warning btn-sm ms-1" data-bs-toggle="modal" data-bs-target="#editarClienteModal{{ cliente.id }}">
+                                <i class="fas fa-edit"></i>
+                            </button>
                         </td>
                     </tr>
+                    <!-- Modal editar cliente -->
+                    <div class="modal fade" id="editarClienteModal{{ cliente.id }}" tabindex="-1" aria-labelledby="editarClienteModalLabel{{ cliente.id }}" aria-hidden="true">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="editarClienteModalLabel{{ cliente.id }}">Editar Cliente</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                                </div>
+                                <form method="post" action="">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="accion" value="editar_cliente">
+                                    <input type="hidden" name="id_cliente" value="{{ cliente.id }}">
+                                    <input type="hidden" name="id_persona" value="{{ cliente.persona.id }}">
+                                    <div class="modal-body">
+                                        <div class="mb-3">
+                                            <label for="dni{{ cliente.id }}" class="form-label">DNI</label>
+                                            <input type="text" class="form-control" id="dni{{ cliente.id }}" name="dni" value="{{ cliente.persona.dni }}" required>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="nombre_completo{{ cliente.id }}" class="form-label">Nombre completo</label>
+                                            <input type="text" class="form-control" id="nombre_completo{{ cliente.id }}" name="nombre_completo" value="{{ cliente.persona.nombre_completo }}" required>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="telefono{{ cliente.id }}" class="form-label">Teléfono</label>
+                                            <input type="text" class="form-control" id="telefono{{ cliente.id }}" name="telefono" value="{{ cliente.persona.telefono }}">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="municipio{{ cliente.id }}" class="form-label">Municipio</label>
+                                            <select class="form-select" id="municipio{{ cliente.id }}" name="municipio" required>
+                                                <option value="">Seleccione un municipio</option>
+                                                {% for municipio in municipios %}
+                                                    <option value="{{ municipio.codigo_municipio }}" {% if cliente.persona.codigo_municipio.codigo_municipio == municipio.codigo_municipio %}selected{% endif %}>{{ municipio.nombre_municipio }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                        <div class="form-check mb-3">
+                                            <input class="form-check-input" type="checkbox" id="estado{{ cliente.id }}" name="estado" value="1" {% if cliente.persona.estado %}checked{% endif %}>
+                                            <label class="form-check-label" for="estado{{ cliente.id }}">Activo</label>
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                        <button type="submit" class="btn btn-warning">Actualizar</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
                     {% empty %}
                     <tr><td colspan="6" class="text-center">No hay clientes disponibles.</td></tr>
                     {% endfor %}

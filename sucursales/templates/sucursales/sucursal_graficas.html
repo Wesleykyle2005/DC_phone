@@ -1,0 +1,332 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Gráficas - {{ sucursal.nombre }} - DC_phone{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+    .chart-container {
+        position: relative;
+        height: 400px;
+        margin-bottom: 2rem;
+    }
+    .metric-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 15px;
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+    }
+    .metric-value {
+        font-size: 2rem;
+        font-weight: bold;
+        margin-bottom: 0.5rem;
+    }
+    .metric-label {
+        font-size: 0.9rem;
+        opacity: 0.9;
+    }
+    .chart-card {
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    .chart-title {
+        color: #333;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        text-align: center;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Encabezado -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2><i class="fas fa-chart-bar me-2"></i>Dashboard de Sucursal</h2>
+            <h4 class="text-primary">{{ sucursal.nombre }}</h4>
+            <p class="text-muted">
+                <i class="fas fa-map-marker-alt me-2"></i>{{ sucursal.direccion }} - {{ sucursal.municipio }}
+                {% if sucursal.telefono %}
+                <br><i class="fas fa-phone me-2"></i>{{ sucursal.telefono }}
+                {% endif %}
+            </p>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{% url 'sucursales:sucursal-list' %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Volver a Sucursales
+            </a>
+        </div>
+    </div>
+
+    <!-- Métricas rápidas -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="metric-card">
+                <div class="metric-value">{{ ventas_mensuales|length }}</div>
+                <div class="metric-label">Meses con Ventas</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="metric-card">
+                <div class="metric-value">{{ productos_mas_vendidos|length }}</div>
+                <div class="metric-label">Productos Vendidos</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="metric-card">
+                <div class="metric-value">{{ inventario_actual|length }}</div>
+                <div class="metric-label">Productos en Inventario</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="metric-card">
+                <div class="metric-value">{{ rendimiento_empleados|length }}</div>
+                <div class="metric-label">Empleados Activos</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gráficas -->
+    <div class="row">
+        <!-- Ventas Mensuales -->
+        <div class="col-md-6">
+            <div class="chart-card">
+                <h5 class="chart-title"><i class="fas fa-chart-line me-2"></i>Ventas <span id="ventasModoTitulo">por Día</span></h5>
+                <div class="mb-2 text-center">
+                    <button id="toggleVentasModo" class="btn btn-outline-primary btn-sm">Cambiar a ventas por mes</button>
+                </div>
+                <div class="chart-container">
+                    <canvas id="ventasMensualesChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Productos Más Vendidos -->
+        <div class="col-md-6">
+            <div class="chart-card">
+                <h5 class="chart-title"><i class="fas fa-chart-pie me-2"></i>Productos Más Vendidos</h5>
+                <div class="chart-container">
+                    <canvas id="productosVendidosChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Inventario Actual -->
+        <div class="col-md-6">
+            <div class="chart-card">
+                <h5 class="chart-title"><i class="fas fa-boxes me-2"></i>Inventario Actual</h5>
+                <div class="chart-container">
+                    <canvas id="inventarioChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Rendimiento de Empleados -->
+        <div class="col-md-6">
+            <div class="chart-card">
+                <h5 class="chart-title"><i class="fas fa-users me-2"></i>Rendimiento de Empleados</h5>
+                <div class="chart-container">
+                    <canvas id="empleadosChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Datos para las gráficas
+const ventasMensuales = {{ ventas_mensuales|safe }};
+const ventasDiarias = {{ ventas_diarias|safe }};
+const productosMasVendidos = {{ productos_mas_vendidos|safe }};
+const inventarioActual = {{ inventario_actual|safe }};
+const rendimientoEmpleados = {{ rendimiento_empleados|safe }};
+
+// Colores para las gráficas
+const colors = [
+    '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF',
+    '#FF9F40', '#FF6384', '#C9CBCF', '#4BC0C0', '#FF6384'
+];
+
+// 1. Gráfica de Ventas (por día/mes)
+const ventasCtx = document.getElementById('ventasMensualesChart').getContext('2d');
+let ventasModo = 'dia'; // 'dia' o 'mes'
+
+function getVentasData() {
+    if (ventasModo === 'dia') {
+        return {
+            labels: ventasDiarias.map(item => item.dia),
+            data: ventasDiarias.map(item => item.total),
+            label: 'Ventas Totales por Día (C$)'
+        };
+    } else {
+        return {
+            labels: ventasMensuales.map(item => item.mes),
+            data: ventasMensuales.map(item => item.total),
+            label: 'Ventas Totales por Mes (C$)'
+        };
+    }
+}
+
+let ventasChart;
+function renderVentasChart() {
+    const ventasData = getVentasData();
+    if (ventasChart) ventasChart.destroy();
+    ventasChart = new Chart(ventasCtx, {
+        type: 'line',
+        data: {
+            labels: ventasData.labels,
+            datasets: [{
+                label: ventasData.label,
+                data: ventasData.data,
+                borderColor: '#36A2EB',
+                backgroundColor: 'rgba(54, 162, 235, 0.1)',
+                borderWidth: 3,
+                fill: true,
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top'
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return 'C$ ' + value.toLocaleString();
+                        }
+                    }
+                }
+            }
+        }
+    });
+    // Cambiar el título y el texto del botón
+    document.getElementById('ventasModoTitulo').textContent = ventasModo === 'dia' ? 'por Día' : 'por Mes';
+    document.getElementById('toggleVentasModo').textContent = ventasModo === 'dia' ? 'Cambiar a ventas por mes' : 'Cambiar a ventas por día';
+}
+
+document.getElementById('toggleVentasModo').addEventListener('click', function() {
+    ventasModo = ventasModo === 'dia' ? 'mes' : 'dia';
+    renderVentasChart();
+});
+
+// Render inicial
+renderVentasChart();
+
+// 2. Gráfica de Productos Más Vendidos
+const productosCtx = document.getElementById('productosVendidosChart').getContext('2d');
+new Chart(productosCtx, {
+    type: 'doughnut',
+    data: {
+        labels: productosMasVendidos.map(item => item.producto),
+        datasets: [{
+            data: productosMasVendidos.map(item => item.cantidad),
+            backgroundColor: colors.slice(0, productosMasVendidos.length),
+            borderWidth: 2,
+            borderColor: '#fff'
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'bottom',
+                labels: {
+                    padding: 20,
+                    usePointStyle: true
+                }
+            }
+        }
+    }
+});
+
+// 3. Gráfica de Inventario Actual
+const inventarioCtx = document.getElementById('inventarioChart').getContext('2d');
+new Chart(inventarioCtx, {
+    type: 'bar',
+    data: {
+        labels: inventarioActual.map(item => item.producto),
+        datasets: [{
+            label: 'Stock Disponible',
+            data: inventarioActual.map(item => item.stock),
+            backgroundColor: inventarioActual.map(item => 
+                item.stock < 5 ? '#FF6384' : 
+                item.stock < 10 ? '#FFCE56' : '#4BC0C0'
+            ),
+            borderColor: '#fff',
+            borderWidth: 1
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        indexAxis: 'y',
+        plugins: {
+            legend: {
+                display: false
+            }
+        },
+        scales: {
+            x: {
+                beginAtZero: true,
+                title: {
+                    display: true,
+                    text: 'Cantidad en Stock'
+                }
+            }
+        }
+    }
+});
+
+// 4. Gráfica de Rendimiento de Empleados
+const empleadosCtx = document.getElementById('empleadosChart').getContext('2d');
+new Chart(empleadosCtx, {
+    type: 'bar',
+    data: {
+        labels: rendimientoEmpleados.map(item => item.empleado),
+        datasets: [{
+            label: 'Ventas Totales (C$)',
+            data: rendimientoEmpleados.map(item => item.ventas),
+            backgroundColor: '#9966FF',
+            borderColor: '#fff',
+            borderWidth: 1
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                display: true,
+                position: 'top'
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    callback: function(value) {
+                        return 'C$ ' + value.toLocaleString();
+                    }
+                }
+            }
+        }
+    }
+});
+</script>
+{% endblock %} 

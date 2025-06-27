@@ -648,11 +648,15 @@ class OtrosListCreateView(View):
         nombre = request.POST.get('nombre')
         codigo = request.POST.get('codigo')
         eliminar_id = request.POST.get('eliminar_id')
+        editar_id = request.POST.get('editar_id')
+        accion = request.POST.get('accion')
         success = False
         error = None
-        # Crear o eliminar según el tipo
+        
+        # Crear, editar o eliminar según el tipo
         try:
             if eliminar_id:
+                # Eliminar
                 if tipo == 'municipio':
                     success = delete_api_data(f'Municipio/{eliminar_id}')
                 elif tipo == 'rol':
@@ -665,7 +669,50 @@ class OtrosListCreateView(View):
                     messages.success(request, f'{tipo.capitalize()} eliminado exitosamente.')
                 else:
                     messages.error(request, f'Error al eliminar el {tipo}.')
+            elif accion == 'editar' and editar_id:
+                # Editar
+                if tipo == 'municipio':
+                    if not codigo or not nombre:
+                        messages.error(request, 'El código y nombre son obligatorios para municipio.')
+                        return redirect(f"{request.path}?tipo={tipo}")
+                    data = {
+                        'idMunicipio': codigo,
+                        'nombreMunicipio': nombre
+                    }
+                    success = put_api_data(f'Municipio/{editar_id}', data)
+                elif tipo == 'rol':
+                    if not nombre:
+                        messages.error(request, 'El nombre es obligatorio para rol.')
+                        return redirect(f"{request.path}?tipo={tipo}")
+                    data = {
+                        'idRol': int(editar_id),
+                        'nombreRol': nombre
+                    }
+                    success = put_api_data(f'Rol/{editar_id}', data)
+                elif tipo == 'marca':
+                    if not nombre:
+                        messages.error(request, 'El nombre es obligatorio para marca.')
+                        return redirect(f"{request.path}?tipo={tipo}")
+                    data = {
+                        'idMarca': int(editar_id),
+                        'nombreMarca': nombre
+                    }
+                    success = put_api_data(f'Marca/{editar_id}', data)
+                elif tipo == 'categoria':
+                    if not nombre:
+                        messages.error(request, 'El nombre es obligatorio para categoría.')
+                        return redirect(f"{request.path}?tipo={tipo}")
+                    data = {
+                        'idCategoria': int(editar_id),
+                        'nombreCategoria': nombre
+                    }
+                    success = put_api_data(f'Categoria/{editar_id}', data)
+                if success:
+                    messages.success(request, f'{tipo.capitalize()} actualizado exitosamente.')
+                else:
+                    messages.error(request, f'Error al actualizar el {tipo}.')
             elif nombre:
+                # Crear
                 if tipo == 'municipio':
                     if not codigo:
                         messages.error(request, 'El código es obligatorio para municipio.')

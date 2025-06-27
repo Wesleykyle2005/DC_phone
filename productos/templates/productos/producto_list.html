@@ -53,6 +53,10 @@
                         <td>{% if producto.categoria.nombre %}{{ producto.categoria.nombre }}{% else %}Indefinido{% endif %}</td>
                         <td>{% if producto.marca.nombre %}{{ producto.marca.nombre }}{% else %}Indefinido{% endif %}</td>
                         <td>
+                            <!-- Botón para editar -->
+                            <button type="button" class="btn btn-warning btn-sm me-1" data-bs-toggle="modal" data-bs-target="#editarProductoModal{{ producto.id }}">
+                                <i class="fas fa-edit"></i>
+                            </button>
                             <!-- Botón para abrir el modal de confirmación -->
                             <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#eliminarProductoModal{{ producto.id }}">
                                 <i class="fas fa-trash"></i>
@@ -184,4 +188,63 @@
         </div>
     </div>
 </div>
+
+<!-- Modal para editar producto -->
+{% for producto in productos %}
+{% if producto.estado == True %}
+<div class="modal fade" id="editarProductoModal{{ producto.id }}" tabindex="-1" aria-labelledby="editarProductoModalLabel{{ producto.id }}" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editarProductoModalLabel{{ producto.id }}">Editar Producto</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" action="{% url 'productos:producto-update' producto.id %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="nombre{{ producto.id }}" class="form-label">Nombre</label>
+                        <input type="text" class="form-control" id="nombre{{ producto.id }}" name="nombre" value="{{ producto.nombre }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="descripcion{{ producto.id }}" class="form-label">Descripción</label>
+                        <textarea class="form-control" id="descripcion{{ producto.id }}" name="descripcion" rows="3">{{ producto.descripcion }}</textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="precio{{ producto.id }}" class="form-label">Precio</label>
+                        <input type="number" class="form-control" id="precio{{ producto.id }}" name="precio" step="0.01" min="0" value="{{ producto.precio }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="categoria{{ producto.id }}" class="form-label">Categoría</label>
+                        <select class="form-select" id="categoria{{ producto.id }}" name="categoria" required>
+                            <option value="">Seleccione una categoría</option>
+                            {% for categoria in categorias %}
+                            <option value="{{ categoria.id }}" {% if categoria.id == producto.categoria.id %}selected{% endif %}>
+                                {{ categoria.nombre }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="marca{{ producto.id }}" class="form-label">Marca</label>
+                        <select class="form-select" id="marca{{ producto.id }}" name="marca" required>
+                            <option value="">Seleccione una marca</option>
+                            {% for marca in marcas %}
+                            <option value="{{ marca.id }}" {% if marca.id == producto.marca.id %}selected{% endif %}>
+                                {{ marca.nombre }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-warning">Actualizar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endfor %}
 {% endblock %} 

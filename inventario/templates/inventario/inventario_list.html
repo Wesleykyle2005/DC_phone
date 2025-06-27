@@ -47,6 +47,10 @@
                         <td>{% if inventario.sucursal.nombre %}{{ inventario.sucursal.nombre }}{% else %}Indefinido{% endif %}</td>
                         <td>{{ inventario.cantidad }}</td>
                         <td>
+                            <!-- Botón para editar -->
+                            <button type="button" class="btn btn-warning btn-sm me-1" data-bs-toggle="modal" data-bs-target="#editarInventarioModal{{ inventario.id }}">
+                                <i class="fas fa-edit"></i>
+                            </button>
                             <!-- Botón para abrir el modal de confirmación -->
                             <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#eliminarInventarioModal{{ inventario.id }}">
                                 <i class="fas fa-trash"></i>
@@ -170,4 +174,55 @@
         </div>
     </div>
 </div>
+
+<!-- Modal para editar inventario -->
+{% for inventario in inventarios %}
+{% if inventario.estado == True %}
+<div class="modal fade" id="editarInventarioModal{{ inventario.id }}" tabindex="-1" aria-labelledby="editarInventarioModalLabel{{ inventario.id }}" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editarInventarioModalLabel{{ inventario.id }}">Editar Inventario</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" action="{% url 'inventario:inventario-update' inventario.id %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="producto{{ inventario.id }}" class="form-label">Producto</label>
+                        <select class="form-select" id="producto{{ inventario.id }}" name="producto" required>
+                            <option value="">Seleccione un producto</option>
+                            {% for producto in productos %}
+                            <option value="{{ producto.id }}" {% if producto.id == inventario.producto.id %}selected{% endif %}>
+                                {{ producto.nombre }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="sucursal{{ inventario.id }}" class="form-label">Sucursal</label>
+                        <select class="form-select" id="sucursal{{ inventario.id }}" name="sucursal" required>
+                            <option value="">Seleccione una sucursal</option>
+                            {% for sucursal in sucursales %}
+                            <option value="{{ sucursal.id }}" {% if sucursal.id == inventario.sucursal.id %}selected{% endif %}>
+                                {{ sucursal.nombre }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="cantidad{{ inventario.id }}" class="form-label">Cantidad</label>
+                        <input type="number" class="form-control" id="cantidad{{ inventario.id }}" name="cantidad" min="0" value="{{ inventario.cantidad }}" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-warning">Actualizar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endfor %}
 {% endblock %} 

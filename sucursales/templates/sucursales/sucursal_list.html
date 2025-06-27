@@ -49,6 +49,14 @@
                         <td>{{ sucursal.telefono }}</td>
                         <td>{% if sucursal.municipio.nombre_municipio %}{{ sucursal.municipio.nombre_municipio }}{% else %}Indefinido{% endif %}</td>
                         <td>
+                            <!-- Botón para gráficas -->
+                            <a href="{% url 'sucursales:sucursal-graficas' sucursal.id %}" class="btn btn-info btn-sm me-1">
+                                <i class="fas fa-chart-bar"></i>
+                            </a>
+                            <!-- Botón para editar -->
+                            <button type="button" class="btn btn-warning btn-sm me-1" data-bs-toggle="modal" data-bs-target="#editarSucursalModal{{ sucursal.id }}">
+                                <i class="fas fa-edit"></i>
+                            </button>
                             <!-- Botón para abrir el modal de confirmación -->
                             <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#eliminarSucursalModal{{ sucursal.id }}">
                                 <i class="fas fa-trash"></i>
@@ -171,4 +179,52 @@
         </div>
     </div>
 </div>
+
+<!-- Modal para editar sucursal -->
+{% for sucursal in sucursales %}
+{% if sucursal.estado == True %}
+<div class="modal fade" id="editarSucursalModal{{ sucursal.id }}" tabindex="-1" aria-labelledby="editarSucursalModalLabel{{ sucursal.id }}" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editarSucursalModalLabel{{ sucursal.id }}">Editar Sucursal</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" action="{% url 'sucursales:sucursal-update' sucursal.id %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="nombre{{ sucursal.id }}" class="form-label">Nombre</label>
+                        <input type="text" class="form-control" id="nombre{{ sucursal.id }}" name="nombre" value="{{ sucursal.nombre }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="direccion{{ sucursal.id }}" class="form-label">Dirección</label>
+                        <input type="text" class="form-control" id="direccion{{ sucursal.id }}" name="direccion" value="{{ sucursal.direccion }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="telefono{{ sucursal.id }}" class="form-label">Teléfono</label>
+                        <input type="text" class="form-control" id="telefono{{ sucursal.id }}" name="telefono" value="{{ sucursal.telefono }}">
+                    </div>
+                    <div class="mb-3">
+                        <label for="municipio{{ sucursal.id }}" class="form-label">Municipio</label>
+                        <select class="form-select" id="municipio{{ sucursal.id }}" name="municipio" required>
+                            <option value="">Seleccione un municipio</option>
+                            {% for municipio in municipios %}
+                            <option value="{{ municipio.codigo_municipio }}" {% if municipio.codigo_municipio == sucursal.municipio.codigo_municipio %}selected{% endif %}>
+                                {{ municipio.nombre_municipio }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-warning">Actualizar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endfor %}
 {% endblock %} 

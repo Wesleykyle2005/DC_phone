@@ -152,3 +152,46 @@ class InventarioDeleteView(View):
         except Exception as e:
             messages.error(request, f'Error al eliminar inventario: {str(e)}')
         return redirect(self.success_url)
+
+class InventarioUpdateView(View):
+    success_url = reverse_lazy('inventario:inventario-list')
+
+    def post(self, request, pk):
+        if not request.session.get('usuario'):
+            return redirect('usuarios:login')
+        
+        try:
+            # Obtener datos del formulario
+            producto_id = request.POST.get('producto')
+            sucursal_id = request.POST.get('sucursal')
+            cantidad = request.POST.get('cantidad')
+            
+            # Validar datos
+            if not all([producto_id, sucursal_id, cantidad]):
+                messages.error(request, 'Todos los campos obligatorios deben ser completados.')
+                return redirect('inventario:inventario-list')
+            
+            # Actualizar inventario vía API
+            url = f"https://dc-phone-api.onrender.com/api/Inventario/{pk}"
+            payload = {
+                "idInventario": pk,
+                "idProducto": int(producto_id),
+                "idSucursal": int(sucursal_id),
+                "cantidadInventario": int(cantidad),
+                "estadoInventario": True
+            }
+            
+            response = requests.put(url, json=payload, timeout=60)
+            if response.status_code in (200, 201, 204):
+                messages.success(request, 'Inventario actualizado exitosamente.')
+            else:
+                messages.error(request, f'Error al actualizar inventario: {response.status_code}')
+                
+        except requests.Timeout:
+            messages.error(request, 'Timeout: La API tardó demasiado en responder.')
+        except ValueError:
+            messages.error(request, 'Error: La cantidad debe ser un número válido.')
+        except Exception as e:
+            messages.error(request, f'Error al actualizar inventario: {str(e)}')
+        
+        return redirect(self.success_url)
