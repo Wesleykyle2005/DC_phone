@@ -3,6 +3,8 @@ from django.views import View
 from django.urls import reverse_lazy
 from django.contrib import messages
 import requests
+from ventas.export_excel import export_to_excel
+from django.http import HttpResponse
 
 # Create your views here.
 
@@ -195,3 +197,42 @@ class InventarioUpdateView(View):
             messages.error(request, f'Error al actualizar inventario: {str(e)}')
         
         return redirect(self.success_url)
+
+class InventarioExportExcelView(View):
+    def get(self, request):
+        if not request.session.get('usuario'):
+            return redirect('usuarios:login')
+        url = "https://dc-phone-api.onrender.com/api/Inventario"
+        response = requests.get(url, timeout=60)
+        inventarios_api = response.json() if response.status_code == 200 else []
+        inventarios = []
+        for inv in inventarios_api:
+            if inv.get('estadoInventario', True):
+                sucursal_data = inv.get('sucursal')
+                if sucursal_data is None:
+                    sucursal = 'Indefinido'
+                else:
+                    sucursal = sucursal_data.get('nombreSucursal', 'N/A')
+                producto_data = inv.get('producto')
+                if producto_data is None:
+                    producto = 'Indefinido'
+                else:
+                    producto = producto_data.get('nombreProducto', 'N/A')
+                inventario = {
+                    'producto': producto,
+                    'sucursal': sucursal,
+                    'cantidad': inv.get('cantidadInventario')
+                }
+                inventarios.append(inventario)
+        columnas = [
+            ("producto", "Producto"),
+            ("sucursal", "Sucursal"),
+            ("cantidad", "Cantidad")
+        ]
+        output = export_to_excel(inventarios, columnas, nombre_archivo="inventario.xlsx")
+        response = HttpResponse(
+            output.getvalue(),
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        response['Content-Disposition'] = 'attachment; filename=inventario.xlsx'
+        return response

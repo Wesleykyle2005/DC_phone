@@ -12,6 +12,7 @@ import requests
 import os
 from datetime import datetime
 from core.views import put_api_data, get_api_data
+from .export_excel import export_to_excel
 
 # Configuración de la API
 API_BASE_URL = 'https://dc-phone-api.onrender.com/api'
@@ -196,12 +197,12 @@ class FacturaCreateView(View):
         productos = [p for p in productos if p.get('estadoProducto', True)]
         inventarios = [i for i in inventarios if i.get('estadoInventario', True)]
         
-        # Preparar datos de productos por sucursal
+        # Preparar datos de productos por sucursal SOLO para productos con inventario > 0
         productos_data = []
         for inventario in inventarios:
             producto = next((p for p in productos if p.get('idProducto') == inventario.get('idProducto')), None)
             sucursal = next((s for s in sucursales if s.get('idSucursal') == inventario.get('idSucursal')), None)
-            if producto is not None and sucursal is not None:
+            if producto is not None and sucursal is not None and inventario.get('cantidadInventario', 0) > 0:
                 productos_data.append({
                     'id': producto.get('idProducto'),
                     'nombre': producto.get('nombreProducto'),
@@ -468,4 +469,82 @@ class FacturaPDFView(View):
         p.showPage()
         p.save()
         
+        return response
+
+class FacturaExportExcelView(View):
+    def get(self, request):
+        if not request.session.get('usuario'):
+            return redirect('usuarios:login')
+        # Obtener facturas y catálogos
+        facturas = get_api_data('Factura')
+        clientes = get_api_data('Cliente')
+        empleados = get_api_data('Empleado')
+        sucursales = get_api_data('Sucursal')
+        productos = get_api_data('Producto')
+        detalles_api = get_api_data('DetalleFactura')
+        # Diccionarios para acceso rápido
+        clientes_dict = {c['idCliente']: c for c in clientes}
+        empleados_dict = {e['idEmpleado']: e for e in empleados}
+        sucursales_dict = {s['idSucursal']: s for s in sucursales}
+        productos_dict = {p['idProducto']: p for p in productos}
+        detalles_por_factura = {}
+        for detalle in detalles_api:
+            id_factura = detalle.get('idFactura')
+            if isinstance(id_factura, dict):
+                id_factura = id_factura.get('idFactura')
+            if id_factura:
+                detalles_por_factura.setdefault(id_factura, []).append(detalle)
+        # Preparar datos para Excel
+        datos = []
+        for factura in facturas:
+            if not factura.get('estadoFactura', True):
+                continue
+            id_factura = factura.get('idFactura')
+            cliente = clientes_dict.get(factura.get('idCliente'))
+            empleado = empleados_dict.get(factura.get('idEmpleado'))
+            sucursal = sucursales_dict.get(factura.get('idSucursal'))
+            detalles = detalles_por_factura.get(id_factura, [])
+            if detalles:
+                for detalle in detalles:
+                    producto = productos_dict.get(detalle.get('idProducto'))
+                    datos.append({
+                        'idFactura': id_factura,
+                        'fechaFactura': factura.get('fechaFactura', ''),
+                        'cliente': cliente['persona']['nombreCompletoPersona'] if cliente and cliente.get('persona') else 'Sin datos',
+                        'empleado': empleado['persona']['nombreCompletoPersona'] if empleado and empleado.get('persona') else 'Sin datos',
+                        'sucursal': sucursal['nombreSucursal'] if sucursal else 'Sin datos',
+                        'totalFactura': factura.get('totalFactura', 0),
+                        'producto': producto['nombreProducto'] if producto else 'Producto no encontrado',
+                        'cantidad': detalle.get('cantidadDetalle', 0),
+                        'precio_unitario': detalle.get('precioUnitarioDetalle', 0),
+                        'subtotal': detalle.get('subtotalDetalle', 0),
+                    })
+            else:
+                datos.append({
+                    'idFactura': id_factura,
+                    'fechaFactura': factura.get('fechaFactura', ''),
+                    'cliente': cliente['persona']['nombreCompletoPersona'] if cliente and cliente.get('persona') else 'Sin datos',
+                    'empleado': empleado['persona']['nombreCompletoPersona'] if empleado and empleado.get('persona') else 'Sin datos',
+                    'sucursal': sucursal['nombreSucursal'] if sucursal else 'Sin datos',
+                    'totalFactura': factura.get('totalFactura', 0),
+                    'producto': '',
+                    'cantidad': '',
+                    'precio_unitario': '',
+                    'subtotal': '',
+                })
+        columnas = [
+            ('idFactura', 'ID Factura'),
+            ('fechaFactura', 'Fecha'),
+            ('cliente', 'Cliente'),
+            ('empleado', 'Empleado'),
+            ('sucursal', 'Sucursal'),
+            ('totalFactura', 'Total Factura'),
+            ('producto', 'Producto'),
+            ('cantidad', 'Cantidad'),
+            ('precio_unitario', 'Precio Unitario'),
+            ('subtotal', 'Subtotal'),
+        ]
+        output = export_to_excel(datos, columnas, nombre_archivo="ventas.xlsx")
+        response = HttpResponse(output, content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        response['Content-Disposition'] = 'attachment; filename="ventas.xlsx"'
         return response

@@ -3,6 +3,8 @@ from django.views import View
 from django.urls import reverse_lazy
 from django.contrib import messages
 import requests
+from ventas.export_excel import export_to_excel
+from django.http import HttpResponse
 
 # Create your views here.
 
@@ -342,3 +344,39 @@ class SucursalUpdateView(View):
             messages.error(request, f'Error al actualizar sucursal: {str(e)}')
         
         return redirect(self.success_url)
+
+class SucursalExportExcelView(View):
+    def get(self, request):
+        if not request.session.get('usuario'):
+            return redirect('usuarios:login')
+        url = "https://dc-phone-api.onrender.com/api/Sucursal"
+        response = requests.get(url, timeout=60)
+        sucursales_api = response.json() if response.status_code == 200 else []
+        sucursales = []
+        for s in sucursales_api:
+            if s.get('estadoSucursal', True):
+                municipio_data = s.get('municipio')
+                if municipio_data is None:
+                    municipio = 'Indefinido'
+                else:
+                    municipio = municipio_data.get('nombreMunicipio', 'N/A')
+                sucursal = {
+                    'nombre': s.get('nombreSucursal'),
+                    'direccion': s.get('direccionSucursal'),
+                    'telefono': s.get('telefonoSucursal'),
+                    'municipio': municipio
+                }
+                sucursales.append(sucursal)
+        columnas = [
+            ("nombre", "Nombre"),
+            ("direccion", "Dirección"),
+            ("telefono", "Teléfono"),
+            ("municipio", "Municipio")
+        ]
+        output = export_to_excel(sucursales, columnas, nombre_archivo="sucursales.xlsx")
+        response = HttpResponse(
+            output.getvalue(),
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        response['Content-Disposition'] = 'attachment; filename=sucursales.xlsx'
+        return response

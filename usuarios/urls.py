@@ -1,6 +1,7 @@
 from django.urls import path, include
 from . import views
 from core.views import CustomLoginView
+from .views import ExportarClientesExcelView, ExportarEmpleadosExcelView
 
 app_name = 'usuarios'
 
@@ -17,4 +18,7 @@ urlpatterns = [
     # URLs de Autenticación
     path('login/', CustomLoginView.as_view(), name='login'),
     path('logout/', views.CustomLogoutView.as_view(), name='logout'),
+
+    path('personas/exportar_clientes_excel/', ExportarClientesExcelView.as_view(), name='exportar-clientes-excel'),
+    path('personas/exportar_empleados_excel/', ExportarEmpleadosExcelView.as_view(), name='exportar-empleados-excel'),
 ] 

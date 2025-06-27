@@ -3,6 +3,8 @@ from django.views import View
 from django.urls import reverse_lazy
 from django.contrib import messages
 import requests
+from ventas.export_excel import export_to_excel
+from django.http import HttpResponse
 
 # Create your views here.
 
@@ -259,3 +261,55 @@ class ProductoUpdateView(View):
             messages.error(request, f'Error al actualizar producto: {str(e)}')
         
         return redirect(self.success_url)
+
+class ProductoExportExcelView(View):
+    def get(self, request):
+        if not request.session.get('usuario'):
+            return redirect('usuarios:login')
+        # Obtener productos igual que en ProductoListView
+        url = "https://dc-phone-api.onrender.com/api/Producto"
+        response = requests.get(url, timeout=60)
+        productos_api = response.json() if response.status_code == 200 else []
+        productos = []
+        for producto_api in productos_api:
+            if producto_api.get('estadoProducto', True):
+                categoria_data = producto_api.get('categoria')
+                if categoria_data is None:
+                    categoria = {'nombre': 'Indefinido', 'id': ''}
+                else:
+                    categoria = {
+                        'nombre': categoria_data.get('nombreCategoria', 'N/A'),
+                        'id': categoria_data.get('idCategoria', '')
+                    }
+                marca_data = producto_api.get('marca')
+                if marca_data is None:
+                    marca = {'nombre': 'Indefinido', 'id': ''}
+                else:
+                    marca = {
+                        'nombre': marca_data.get('nombreMarca', 'N/A'),
+                        'id': marca_data.get('idMarca', '')
+                    }
+                producto = {
+                    'id': producto_api.get('idProducto'),
+                    'nombre': producto_api.get('nombreProducto'),
+                    'descripcion': producto_api.get('descripcionProducto'),
+                    'precio': producto_api.get('precioProducto'),
+                    'categoria': categoria['nombre'],
+                    'marca': marca['nombre']
+                }
+                productos.append(producto)
+        # Columnas a exportar
+        columnas = [
+            ("nombre", "Nombre"),
+            ("descripcion", "Descripción"),
+            ("precio", "Precio"),
+            ("categoria", "Categoría"),
+            ("marca", "Marca")
+        ]
+        output = export_to_excel(productos, columnas, nombre_archivo="productos.xlsx")
+        response = HttpResponse(
+            output.getvalue(),
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        response['Content-Disposition'] = 'attachment; filename=productos.xlsx'
+        return response

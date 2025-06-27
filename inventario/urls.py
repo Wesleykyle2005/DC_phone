@@ -9,4 +9,5 @@ urlpatterns = [
     path('crear/', views.InventarioCreateView.as_view(), name='inventario-create'),
     path('<int:pk>/delete/', views.InventarioDeleteView.as_view(), name='inventario-delete'),
     path('<int:pk>/update/', views.InventarioUpdateView.as_view(), name='inventario-update'),
+    path('exportar_excel/', views.InventarioExportExcelView.as_view(), name='inventario-export-excel'),
 ] 

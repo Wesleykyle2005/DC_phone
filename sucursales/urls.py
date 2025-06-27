@@ -10,4 +10,5 @@ urlpatterns = [
     path('<int:pk>/delete/', views.SucursalDeleteView.as_view(), name='sucursal-delete'),
     path('<int:pk>/graficas/', views.SucursalGraficasView.as_view(), name='sucursal-graficas'),
     path('<int:pk>/update/', views.SucursalUpdateView.as_view(), name='sucursal-update'),
+    path('exportar_excel/', views.SucursalExportExcelView.as_view(), name='sucursal-export-excel'),
 ] 

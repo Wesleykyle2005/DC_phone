@@ -28,6 +28,15 @@
         <div class="col-md-6 text-end">
             <a href="?tipo=cliente" class="btn btn-outline-info {% if tipo_filtro == 'cliente' %}active{% endif %}">Clientes</a>
             <a href="?tipo=empleado" class="btn btn-outline-info {% if tipo_filtro == 'empleado' %}active{% endif %}">Empleados</a>
+            {% if tipo_filtro == 'cliente' %}
+            <a href="{% url 'usuarios:exportar-clientes-excel' %}" class="btn btn-success ms-2">
+                <i class="fas fa-file-excel me-2"></i>Exportar Clientes
+            </a>
+            {% elif tipo_filtro == 'empleado' %}
+            <a href="{% url 'usuarios:exportar-empleados-excel' %}" class="btn btn-success ms-2">
+                <i class="fas fa-file-excel me-2"></i>Exportar Empleados
+            </a>
+            {% endif %}
         </div>
     </div>
     <!-- Tabla de personas -->

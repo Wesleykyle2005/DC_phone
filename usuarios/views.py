@@ -3,6 +3,10 @@ from django.views import View
 from django.urls import reverse_lazy
 from django.contrib import messages
 import requests
+import sys
+sys.path.append('ventas')
+from ventas.export_excel import export_to_excel
+from django.http import HttpResponse
 
 # Create your views here.
 
@@ -570,3 +574,117 @@ class PersonaDeleteView(View):
             messages.error(request, f'Error al eliminar {tipo}: {str(e)}')
         
         return redirect(self.success_url)
+
+class ExportarClientesExcelView(View):
+    def get(self, request):
+        if not request.session.get('usuario'):
+            return redirect('usuarios:login')
+        # Obtener clientes y sus datos de persona
+        clientes_response = requests.get("https://dc-phone-api.onrender.com/api/Cliente", timeout=60)
+        municipios_response = requests.get("https://dc-phone-api.onrender.com/api/Municipio", timeout=60)
+        municipios = []
+        if municipios_response.status_code == 200:
+            municipios_api = municipios_response.json()
+            municipios = [{'codigo_municipio': m.get('idMunicipio'), 'nombre_municipio': m.get('nombreMunicipio')} for m in municipios_api]
+        datos = []
+        if clientes_response.status_code == 200:
+            clientes_api = clientes_response.json()
+            for cliente_api in clientes_api:
+                persona_id = cliente_api.get('idPersona')
+                if persona_id:
+                    persona_response = requests.get(f"https://dc-phone-api.onrender.com/api/Persona/{persona_id}", timeout=60)
+                    if persona_response.status_code == 200:
+                        persona_data = persona_response.json()
+                        municipio_nombre = 'N/A'
+                        municipio_id = persona_data.get('idMunicipio')
+                        if municipio_id:
+                            for municipio in municipios:
+                                if municipio['codigo_municipio'] == municipio_id:
+                                    municipio_nombre = municipio['nombre_municipio']
+                                    break
+                        datos.append({
+                            'dni': persona_data.get('dniPersona'),
+                            'nombre_completo': persona_data.get('nombreCompletoPersona'),
+                            'telefono': persona_data.get('telefonoPersona'),
+                            'municipio': municipio_nombre,
+                            'estado': 'Activo' if persona_data.get('estadoPersona', True) else 'Inactivo',
+                        })
+        columnas = [
+            ('dni', 'DNI'),
+            ('nombre_completo', 'Nombre completo'),
+            ('telefono', 'Teléfono'),
+            ('municipio', 'Municipio'),
+            ('estado', 'Estado'),
+        ]
+        output = export_to_excel(datos, columnas, nombre_archivo="clientes.xlsx")
+        response = HttpResponse(output, content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        response['Content-Disposition'] = 'attachment; filename="clientes.xlsx"'
+        return response
+
+class ExportarEmpleadosExcelView(View):
+    def get(self, request):
+        if not request.session.get('usuario'):
+            return redirect('usuarios:login')
+        empleados_response = requests.get("https://dc-phone-api.onrender.com/api/Empleado", timeout=60)
+        municipios_response = requests.get("https://dc-phone-api.onrender.com/api/Municipio", timeout=60)
+        sucursales_response = requests.get("https://dc-phone-api.onrender.com/api/Sucursal", timeout=60)
+        usuarios_response = requests.get("https://dc-phone-api.onrender.com/api/Usuario", timeout=60)
+        municipios = []
+        sucursales = []
+        usuarios = []
+        if municipios_response.status_code == 200:
+            municipios_api = municipios_response.json()
+            municipios = [{'codigo_municipio': m.get('idMunicipio'), 'nombre_municipio': m.get('nombreMunicipio')} for m in municipios_api]
+        if sucursales_response.status_code == 200:
+            sucursales_api = sucursales_response.json()
+            sucursales = [{'id': s.get('idSucursal'), 'nombre': s.get('nombreSucursal')} for s in sucursales_api]
+        if usuarios_response.status_code == 200:
+            usuarios = usuarios_response.json()
+        datos = []
+        if empleados_response.status_code == 200:
+            empleados_api = empleados_response.json()
+            for empleado_api in empleados_api:
+                persona_id = empleado_api.get('idPersona')
+                usuario_empleado = next((u for u in usuarios if u.get('idEmpleado') == empleado_api.get('idEmpleado')), None)
+                if persona_id:
+                    persona_response = requests.get(f"https://dc-phone-api.onrender.com/api/Persona/{persona_id}", timeout=60)
+                    if persona_response.status_code == 200:
+                        persona_data = persona_response.json()
+                        municipio_nombre = 'N/A'
+                        municipio_id = persona_data.get('idMunicipio')
+                        if municipio_id:
+                            for municipio in municipios:
+                                if municipio['codigo_municipio'] == municipio_id:
+                                    municipio_nombre = municipio['nombre_municipio']
+                                    break
+                        sucursal_id = empleado_api.get('idSucursal')
+                        sucursal_nombre = 'N/A'
+                        if sucursal_id:
+                            for sucursal in sucursales:
+                                if sucursal['id'] == sucursal_id:
+                                    sucursal_nombre = sucursal['nombre']
+                                    break
+                        datos.append({
+                            'dni': persona_data.get('dniPersona'),
+                            'nombre_completo': persona_data.get('nombreCompletoPersona'),
+                            'telefono': persona_data.get('telefonoPersona'),
+                            'municipio': municipio_nombre,
+                            'sucursal': sucursal_nombre,
+                            'direccion': empleado_api.get('direccionEmpleado'),
+                            'usuario': usuario_empleado['nombreUsuario'] if usuario_empleado else '',
+                            'estado': 'Activo' if persona_data.get('estadoPersona', True) else 'Inactivo',
+                        })
+        columnas = [
+            ('dni', 'DNI'),
+            ('nombre_completo', 'Nombre completo'),
+            ('telefono', 'Teléfono'),
+            ('municipio', 'Municipio'),
+            ('sucursal', 'Sucursal'),
+            ('direccion', 'Dirección'),
+            ('usuario', 'Usuario'),
+            ('estado', 'Estado'),
+        ]
+        output = export_to_excel(datos, columnas, nombre_archivo="empleados.xlsx")
+        response = HttpResponse(output, content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        response['Content-Disposition'] = 'attachment; filename="empleados.xlsx"'
+        return response
