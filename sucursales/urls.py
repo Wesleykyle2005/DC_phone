@@ -11,4 +11,5 @@ urlpatterns = [
     path('<int:pk>/graficas/', views.SucursalGraficasView.as_view(), name='sucursal-graficas'),
     path('<int:pk>/update/', views.SucursalUpdateView.as_view(), name='sucursal-update'),
     path('exportar_excel/', views.SucursalExportExcelView.as_view(), name='sucursal-export-excel'),
+    path('<int:pk>/exportar_graficas_excel/', views.SucursalExportGraficasExcelView.as_view(), name='sucursal-export-graficas-excel'),
 ] 

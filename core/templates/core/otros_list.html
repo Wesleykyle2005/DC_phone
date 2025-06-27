@@ -30,6 +30,16 @@
             <a href="?tipo=rol" class="btn btn-outline-info {% if tipo == 'rol' %}active{% endif %}">Roles</a>
             <a href="?tipo=marca" class="btn btn-outline-info {% if tipo == 'marca' %}active{% endif %}">Marcas</a>
             <a href="?tipo=categoria" class="btn btn-outline-info {% if tipo == 'categoria' %}active{% endif %}">Categorías</a>
+            <!-- Botón de exportar a Excel -->
+            {% if tipo == 'municipio' %}
+                <a href="{% url 'core:exportar-municipios-excel' %}" class="btn btn-success ms-2"><i class="fas fa-file-excel"></i> Exportar Excel</a>
+            {% elif tipo == 'rol' %}
+                <a href="{% url 'core:exportar-roles-excel' %}" class="btn btn-success ms-2"><i class="fas fa-file-excel"></i> Exportar Excel</a>
+            {% elif tipo == 'marca' %}
+                <a href="{% url 'core:exportar-marcas-excel' %}" class="btn btn-success ms-2"><i class="fas fa-file-excel"></i> Exportar Excel</a>
+            {% elif tipo == 'categoria' %}
+                <a href="{% url 'core:exportar-categorias-excel' %}" class="btn btn-success ms-2"><i class="fas fa-file-excel"></i> Exportar Excel</a>
+            {% endif %}
         </div>
     </div>
     <div class="table-responsive mb-4">

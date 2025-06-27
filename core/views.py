@@ -5,6 +5,8 @@ from django.views import View
 from django.contrib import messages
 from django.core.paginator import Paginator
 import requests
+from ventas.export_excel import export_to_excel
+from django.http import HttpResponse
 
 # Configuración de la API
 API_BASE_URL = 'https://dc-phone-api.onrender.com/api'
@@ -775,3 +777,83 @@ class CustomLoginView(View):
             print(f"DEBUG: Error en API: {response.status_code}")
         messages.error(request, 'Usuario o contraseña incorrectos.')
         return render(request, self.template_name)
+
+class ExportarMunicipiosExcelView(View):
+    def get(self, request):
+        if not request.session.get('usuario'):
+            return redirect('usuarios:login')
+        municipios = get_api_data('Municipio')
+        datos = [
+            {
+                'codigo_municipio': m.get('idMunicipio'),
+                'nombre_municipio': m.get('nombreMunicipio')
+            } for m in municipios
+        ]
+        columnas = [
+            ('codigo_municipio', 'Código'),
+            ('nombre_municipio', 'Nombre'),
+        ]
+        output = export_to_excel(datos, columnas, nombre_archivo="municipios.xlsx")
+        response = HttpResponse(output, content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        response['Content-Disposition'] = 'attachment; filename="municipios.xlsx"'
+        return response
+
+class ExportarRolesExcelView(View):
+    def get(self, request):
+        if not request.session.get('usuario'):
+            return redirect('usuarios:login')
+        roles = get_api_data('Rol')
+        datos = [
+            {
+                'id_rol': r.get('idRol'),
+                'nombre_rol': r.get('nombreRol')
+            } for r in roles
+        ]
+        columnas = [
+            ('id_rol', 'ID'),
+            ('nombre_rol', 'Nombre'),
+        ]
+        output = export_to_excel(datos, columnas, nombre_archivo="roles.xlsx")
+        response = HttpResponse(output, content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        response['Content-Disposition'] = 'attachment; filename="roles.xlsx"'
+        return response
+
+class ExportarMarcasExcelView(View):
+    def get(self, request):
+        if not request.session.get('usuario'):
+            return redirect('usuarios:login')
+        marcas = get_api_data('Marca')
+        datos = [
+            {
+                'id': m.get('idMarca'),
+                'nombre': m.get('nombreMarca')
+            } for m in marcas
+        ]
+        columnas = [
+            ('id', 'ID'),
+            ('nombre', 'Nombre'),
+        ]
+        output = export_to_excel(datos, columnas, nombre_archivo="marcas.xlsx")
+        response = HttpResponse(output, content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        response['Content-Disposition'] = 'attachment; filename="marcas.xlsx"'
+        return response
+
+class ExportarCategoriasExcelView(View):
+    def get(self, request):
+        if not request.session.get('usuario'):
+            return redirect('usuarios:login')
+        categorias = get_api_data('Categoria')
+        datos = [
+            {
+                'id': c.get('idCategoria'),
+                'nombre': c.get('nombreCategoria')
+            } for c in categorias
+        ]
+        columnas = [
+            ('id', 'ID'),
+            ('nombre', 'Nombre'),
+        ]
+        output = export_to_excel(datos, columnas, nombre_archivo="categorias.xlsx")
+        response = HttpResponse(output, content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        response['Content-Disposition'] = 'attachment; filename="categorias.xlsx"'
+        return response

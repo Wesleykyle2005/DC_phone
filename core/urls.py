@@ -31,4 +31,10 @@ urlpatterns = [
     path('categorias/<int:pk>/eliminar/', views.CategoriaDeleteView.as_view(), name='categoria-delete'),
 
     path('otros/', views.OtrosListCreateView.as_view(), name='otros-list'),
+
+    # Exportaciones a Excel para 'otros'
+    path('exportar/municipios/', views.ExportarMunicipiosExcelView.as_view(), name='exportar-municipios-excel'),
+    path('exportar/roles/', views.ExportarRolesExcelView.as_view(), name='exportar-roles-excel'),
+    path('exportar/marcas/', views.ExportarMarcasExcelView.as_view(), name='exportar-marcas-excel'),
+    path('exportar/categorias/', views.ExportarCategoriasExcelView.as_view(), name='exportar-categorias-excel'),
 ]

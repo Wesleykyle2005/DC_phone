@@ -380,3 +380,199 @@ class SucursalExportExcelView(View):
         )
         response['Content-Disposition'] = 'attachment; filename=sucursales.xlsx'
         return response
+
+class SucursalExportGraficasExcelView(View):
+    def get(self, request, pk):
+        if not request.session.get('usuario'):
+            return redirect('usuarios:login')
+        try:
+            # Obtener datos igual que en SucursalGraficasView
+            url = f"https://dc-phone-api.onrender.com/api/Sucursal/{pk}"
+            response = requests.get(url, timeout=60)
+            if response.status_code != 200:
+                messages.error(request, f'Error al cargar la sucursal: {response.status_code}')
+                return redirect('sucursales:sucursal-graficas', pk=pk)
+            sucursal_data = response.json()
+            sucursal = {
+                'id': sucursal_data.get('idSucursal'),
+                'nombre': sucursal_data.get('nombreSucursal'),
+                'direccion': sucursal_data.get('direccionSucursal'),
+                'telefono': sucursal_data.get('telefonoSucursal'),
+                'municipio': (sucursal_data.get('municipio') or {}).get('nombreMunicipio', 'Indefinido')
+            }
+            # Facturas
+            facturas_response = requests.get("https://dc-phone-api.onrender.com/api/Factura", timeout=60)
+            facturas = []
+            if facturas_response.status_code == 200:
+                facturas_api = facturas_response.json()
+                facturas = [f for f in facturas_api if str(f.get('idSucursal')) == str(pk) and f.get('estadoFactura', True)]
+            # Detalles
+            detalles_response = requests.get("https://dc-phone-api.onrender.com/api/DetalleFactura", timeout=60)
+            detalles = []
+            if detalles_response.status_code == 200:
+                detalles_api = detalles_response.json()
+                factura_ids = [f.get('idFactura') for f in facturas]
+                detalles = [d for d in detalles_api if (d.get('idFactura') in factura_ids or (isinstance(d.get('idFactura'), dict) and d.get('idFactura', {}).get('idFactura') in factura_ids))]
+            # Inventario
+            inventario_response = requests.get("https://dc-phone-api.onrender.com/api/Inventario", timeout=60)
+            inventario = []
+            if inventario_response.status_code == 200:
+                inventario_api = inventario_response.json()
+                inventario = [i for i in inventario_api if str(i.get('idSucursal')) == str(pk) and i.get('estadoInventario', True)]
+            # Productos
+            productos_response = requests.get("https://dc-phone-api.onrender.com/api/Producto", timeout=60)
+            productos = {}
+            if productos_response.status_code == 200:
+                productos_api = productos_response.json()
+                productos = {p.get('idProducto'): p for p in productos_api if p.get('estadoProducto', True)}
+            # Empleados
+            empleados_response = requests.get("https://dc-phone-api.onrender.com/api/Empleado", timeout=60)
+            empleados = {}
+            if empleados_response.status_code == 200:
+                empleados_api = empleados_response.json()
+                empleados = {e.get('idEmpleado'): e for e in empleados_api if e.get('estadoEmpleado', True)}
+            from datetime import datetime, timedelta
+            from collections import defaultdict
+            import calendar
+            # Ventas mensuales
+            ventas_mensuales = defaultdict(float)
+            meses_nombres = list(calendar.month_name)[1:]
+            for factura in facturas:
+                fecha_str = factura.get('fechaFactura', '')
+                if fecha_str:
+                    try:
+                        fecha = datetime.fromisoformat(fecha_str.replace('Z', '+00:00'))
+                        if fecha >= datetime.now() - timedelta(days=365):
+                            mes_key = f"{fecha.year}-{fecha.month:02d}"
+                            ventas_mensuales[mes_key] += float(factura.get('totalFactura', 0))
+                    except Exception:
+                        continue
+            ventas_mensuales_ordenadas = []
+            for mes_key in sorted(ventas_mensuales.keys()):
+                year, month = mes_key.split('-')
+                ventas_mensuales_ordenadas.append({
+                    'mes': f"{meses_nombres[int(month)-1]} {year}",
+                    'total': ventas_mensuales[mes_key]
+                })
+            # Productos más vendidos
+            productos_vendidos = defaultdict(lambda: {'cantidad': 0, 'total': 0, 'producto': None})
+            for detalle in detalles:
+                id_producto = detalle.get('idProducto')
+                if isinstance(id_producto, dict):
+                    id_producto = id_producto.get('idProducto')
+                if id_producto in productos:
+                    producto = productos[id_producto]
+                    cantidad = detalle.get('cantidadDetalle', 0)
+                    subtotal = float(detalle.get('subtotalDetalle', 0))
+                    productos_vendidos[id_producto]['cantidad'] += cantidad
+                    productos_vendidos[id_producto]['total'] += subtotal
+                    productos_vendidos[id_producto]['producto'] = producto
+            productos_mas_vendidos = []
+            for id_producto, datos in sorted(productos_vendidos.items(), key=lambda x: x[1]['cantidad'], reverse=True)[:10]:
+                producto = datos['producto']
+                productos_mas_vendidos.append({
+                    'producto': producto.get('nombreProducto', 'Producto Desconocido') if producto else 'Producto Desconocido',
+                    'cantidad': datos['cantidad'],
+                    'total': datos['total'],
+                    'marca': (producto.get('marca', {}) or {}).get('nombreMarca', 'Sin marca') if producto else 'Sin marca'
+                })
+            # Inventario actual
+            inventario_actual = []
+            for inv in inventario:
+                id_producto = inv.get('idProducto')
+                if id_producto in productos:
+                    producto = productos[id_producto]
+                    inventario_actual.append({
+                        'producto': producto.get('nombreProducto', 'Producto Desconocido') if producto else 'Producto Desconocido',
+                        'stock': inv.get('cantidadInventario', 0),
+                        'marca': (producto.get('marca', {}) or {}).get('nombreMarca', 'Sin marca') if producto else 'Sin marca',
+                        'categoria': (producto.get('categoria', {}) or {}).get('nombreCategoria', 'Sin categoría') if producto else 'Sin categoría'
+                    })
+            inventario_actual.sort(key=lambda x: x['stock'])
+            # Rendimiento de empleados
+            rendimiento_empleados = defaultdict(lambda: {'ventas': 0, 'facturas': 0, 'empleado': None})
+            for factura in facturas:
+                id_empleado = factura.get('idEmpleado')
+                if isinstance(id_empleado, dict):
+                    id_empleado = id_empleado.get('idEmpleado')
+                if id_empleado in empleados:
+                    empleado = empleados[id_empleado]
+                    total = float(factura.get('totalFactura', 0))
+                    rendimiento_empleados[id_empleado]['ventas'] += total
+                    rendimiento_empleados[id_empleado]['facturas'] += 1
+                    rendimiento_empleados[id_empleado]['empleado'] = empleado
+            rendimiento_empleados_lista = []
+            for id_empleado, datos in sorted(rendimiento_empleados.items(), key=lambda x: x[1]['ventas'], reverse=True):
+                empleado = datos['empleado']
+                persona = (empleado.get('persona', {}) or {}) if empleado else {}
+                rendimiento_empleados_lista.append({
+                    'empleado': persona.get('nombreCompletoPersona', 'Empleado Desconocido'),
+                    'ventas': datos['ventas'],
+                    'facturas': datos['facturas'],
+                    'promedio': datos['ventas'] / datos['facturas'] if datos['facturas'] > 0 else 0
+                })
+            # Exportar a Excel: cada métrica en una hoja
+            import openpyxl
+            from openpyxl.utils import get_column_letter
+            from openpyxl.styles import Font, PatternFill, Border, Side
+            from io import BytesIO
+            wb = openpyxl.Workbook()
+            # Definir estilos azul
+            header_font = Font(bold=True, color="FFFFFF")
+            header_fill = PatternFill("solid", fgColor="4F81BD")
+            thin_border = Border(
+                left=Side(style='thin', color='4F81BD'),
+                right=Side(style='thin', color='4F81BD'),
+                top=Side(style='thin', color='4F81BD'),
+                bottom=Side(style='thin', color='4F81BD')
+            )
+            # Hoja 1: Ventas mensuales
+            ws1 = wb.active
+            ws1.title = 'Ventas Mensuales'
+            ws1.append(['Mes', 'Total ventas (C$)'])
+            for v in ventas_mensuales_ordenadas:
+                ws1.append([v['mes'], v['total']])
+            # Hoja 2: Productos más vendidos
+            ws2 = wb.create_sheet('Productos Más Vendidos')
+            ws2.append(['Producto', 'Cantidad', 'Total vendido (C$)', 'Marca'])
+            for p in productos_mas_vendidos:
+                ws2.append([p['producto'], p['cantidad'], p['total'], p['marca']])
+            # Hoja 3: Inventario actual
+            ws3 = wb.create_sheet('Inventario Actual')
+            ws3.append(['Producto', 'Stock', 'Marca', 'Categoría'])
+            for i in inventario_actual:
+                ws3.append([i['producto'], i['stock'], i['marca'], i['categoria']])
+            # Hoja 4: Rendimiento de empleados
+            ws4 = wb.create_sheet('Rendimiento Empleados')
+            ws4.append(['Empleado', 'Ventas totales (C$)', 'Facturas', 'Promedio por factura (C$)'])
+            for e in rendimiento_empleados_lista:
+                ws4.append([e['empleado'], e['ventas'], e['facturas'], e['promedio']])
+            # Ajustar ancho de columnas y aplicar estilos
+            for ws in [ws1, ws2, ws3, ws4]:
+                for col in ws.columns:
+                    max_length = 0
+                    column = col[0].column_letter
+                    for cell in col:
+                        try:
+                            if len(str(cell.value)) > max_length:
+                                max_length = len(str(cell.value))
+                        except:
+                            pass
+                        cell.border = thin_border
+                    ws.column_dimensions[column].width = max_length + 2
+                for cell in ws[1]:
+                    cell.font = header_font
+                    cell.fill = header_fill
+                    cell.border = thin_border
+            output = BytesIO()
+            wb.save(output)
+            output.seek(0)
+            response = HttpResponse(output, content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+            response['Content-Disposition'] = f'attachment; filename="sucursal_{sucursal["nombre"]}_graficas.xlsx"'
+            return response
+        except requests.Timeout:
+            messages.error(request, 'Timeout: La API tardó demasiado en responder.')
+            return redirect('sucursales:sucursal-graficas', pk=pk)
+        except Exception as e:
+            messages.error(request, f'Error al exportar métricas: {str(e)}')
+            return redirect('sucursales:sucursal-graficas', pk=pk)

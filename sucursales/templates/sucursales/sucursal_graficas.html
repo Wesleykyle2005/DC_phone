@@ -61,6 +61,9 @@
             <a href="{% url 'sucursales:sucursal-list' %}" class="btn btn-secondary">
                 <i class="fas fa-arrow-left me-2"></i>Volver a Sucursales
             </a>
+            <a href="{% url 'sucursales:sucursal-export-graficas-excel' sucursal.id %}" class="btn btn-success ms-2">
+                <i class="fas fa-file-excel"></i> Exportar métricas a Excel
+            </a>
         </div>
     </div>
 
